@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Risk Program Project Tracker</title>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1a202c;
+    --text-secondary: #64748b;
+    --accent: #3b82f6;
+    --critical: #dc2626;
+    --critical-bg: #fef2f2;
+    --high: #f59e0b;
+    --high-bg: #fffbeb;
+    --medium: #3b82f6;
+    --medium-bg: #eff6ff;
+    --not-started: #94a3b8;
+    --in-progress: #3b82f6;
+    --blocked: #dc2626;
+    --complete: #16a34a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: white;
+    padding: 28px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .header h1 { font-size: 22px; font-weight: 600; }
+  .header-meta { font-size: 13px; opacity: 0.7; margin-top: 4px; }
+
+  .header-actions { display: flex; gap: 10px; }
+
+  .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn:hover { background: rgba(255,255,255,0.2); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); }
+  .btn-primary:hover { background: #2563eb; }
+
+  .container { max-width: 1600px; margin: 0 auto; padding: 24px 40px; }
+
+  /* Dashboard */
+  .dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+
+  .dash-card {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 20px 24px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+
+  .dash-card-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px; }
+  .dash-card-value { font-size: 32px; font-weight: 700; }
+  .dash-card-sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+  .progress-ring { display: flex; align-items: center; gap: 16px; }
+  .progress-ring canvas { flex-shrink: 0; }
+
+  /* Priority breakdown */
+  .dash-wide { grid-column: span 2; }
+  .priority-bars { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+  .priority-bar-row { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+  .priority-bar-label { width: 70px; font-weight: 600; }
+  .priority-bar-track { flex: 1; height: 24px; background: #f1f5f9; border-radius: 6px; overflow: hidden; position: relative; }
+  .priority-bar-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease; display: flex; align-items: center; padding-left: 8px; font-size: 11px; color: white; font-weight: 600; min-width: fit-content; }
+  .priority-bar-count { width: 60px; text-align: right; color: var(--text-secondary); }
+
+  /* Status cards row */
+  .status-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .status-card {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 16px 20px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .status-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .status-card.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .status-card-value { font-size: 28px; font-weight: 700; margin: 4px 0; }
+  .status-card-label { font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Component progress */
+  .component-progress-section {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    margin-bottom: 24px;
+  }
+  .component-progress-section h3 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+  .component-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .comp-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+  .comp-name { width: 260px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .comp-bar-track { flex: 1; height: 18px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+  .comp-bar-fill { height: 100%; border-radius: 4px; background: var(--complete); transition: width 0.6s ease; }
+  .comp-pct { width: 36px; text-align: right; font-weight: 600; color: var(--text-secondary); }
+
+  /* Filters */
+  .filters {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 16px 24px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    margin-bottom: 16px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .filter-group { display: flex; align-items: center; gap: 6px; }
+  .filter-group label { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  select, .search-input {
+    padding: 7px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    background: white;
+    color: var(--text);
+    outline: none;
+  }
+  select:focus, .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+  .search-input { width: 240px; }
+
+  .filter-clear {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--accent);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-weight: 500;
+  }
+  .filter-clear:hover { text-decoration: underline; }
+
+  /* Table */
+  .table-wrapper {
+    background: var(--card);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    overflow-x: auto;
+  }
+
+  table { min-width: 2100px; border-collapse: collapse; font-size: 13px; }
+
+  thead th {
+    background: #f8fafc;
+    padding: 12px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    border-bottom: 2px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  thead th:hover { color: var(--text); }
+  thead th .sort-arrow { margin-left: 4px; opacity: 0.4; }
+  thead th.sorted .sort-arrow { opacity: 1; color: var(--accent); }
+
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:hover { background: #f8fafc; }
+  tbody tr:last-child { border-bottom: none; }
+
+  td { padding: 10px 14px; vertical-align: top; }
+
+  .component-cell { min-width: 220px; max-width: 260px; }
+  .component-name { font-weight: 600; color: var(--text); font-size: 13px; }
+  .component-desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+  .activity-cell { min-width: 280px; max-width: 320px; word-wrap: break-word; }
+  .deliverable-cell { min-width: 220px; max-width: 260px; word-wrap: break-word; }
+  .current-state-cell { min-width: 220px; max-width: 260px; font-size: 12px; color: var(--text-secondary); }
+
+  .priority-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .priority-CRITICAL { background: var(--critical-bg); color: var(--critical); }
+  .priority-HIGH { background: var(--high-bg); color: var(--high); }
+  .priority-MEDIUM { background: var(--medium-bg); color: var(--medium); }
+
+  .status-select {
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    background: white;
+    transition: all 0.2s;
+  }
+  .status-select.status-Not-Started { border-color: var(--not-started); color: var(--not-started); }
+  .status-select.status-In-Progress { border-color: var(--in-progress); color: var(--in-progress); background: #eff6ff; }
+  .status-select.status-Blocked { border-color: var(--blocked); color: var(--blocked); background: #fef2f2; }
+  .status-select.status-Complete { border-color: var(--complete); color: var(--complete); background: #f0fdf4; }
+
+  .date-input {
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text);
+    outline: none;
+    width: 120px;
+  }
+  .date-input:focus { border-color: var(--accent); }
+
+  .editable-input {
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text);
+    outline: none;
+    width: 100%;
+    background: transparent;
+    transition: all 0.2s;
+    line-height: 1.4;
+    resize: none;
+    overflow: hidden;
+    display: block;
+  }
+  .editable-input:hover { border-color: var(--border); background: white; }
+  .editable-input:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 2px rgba(59,130,246,0.1); }
+
+  .notes-cell { min-width: 200px; max-width: 260px; word-wrap: break-word; }
+
+  .owner-input, .artifacts-input {
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    color: var(--text);
+    outline: none;
+    width: 100%;
+    background: transparent;
+    transition: all 0.2s;
+  }
+  .owner-input:hover, .artifacts-input:hover { border-color: var(--border); background: white; }
+  .owner-input:focus, .artifacts-input:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 2px rgba(59,130,246,0.1); }
+
+  .delete-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .delete-btn:hover { color: var(--critical); border-color: var(--critical); background: var(--critical-bg); }
+
+  .undo-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1e293b;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 100;
+    transition: transform 0.3s;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  }
+  .undo-bar.show { transform: translateX(-50%) translateY(0); }
+  .undo-btn { background: var(--accent); color: white; border: none; padding: 5px 14px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: 600; }
+  .undo-btn:hover { background: #2563eb; }
+
+  .row-count { font-size: 12px; color: var(--text-secondary); padding: 12px 16px; text-align: right; background: #f8fafc; border-top: 1px solid var(--border); }
+
+  /* Collapse/expand */
+  .group-header-row { cursor: pointer; }
+  .group-header-row td { background: #f1f5f9; font-weight: 600; font-size: 13px; padding: 10px 16px; }
+  .group-header-row:hover td { background: #e2e8f0; }
+  .collapse-icon { display: inline-block; width: 18px; transition: transform 0.2s; }
+  .collapsed .collapse-icon { transform: rotate(-90deg); }
+
+  /* Export toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1e293b;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s;
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* Due Soon section */
+  .due-soon-section {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    margin-bottom: 24px;
+  }
+  .due-soon-section h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .due-soon-sub { font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; }
+  .due-soon-empty { font-size: 13px; color: var(--text-secondary); padding: 12px 0; }
+  .due-soon-list { display: flex; flex-direction: column; gap: 8px; }
+  .due-soon-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border-left: 4px solid var(--not-started);
+    font-size: 13px;
+  }
+  .due-soon-item.overdue { border-left-color: var(--critical); background: var(--critical-bg); }
+  .due-soon-item.due-this-week { border-left-color: var(--high); background: var(--high-bg); }
+  .due-soon-item.due-later { border-left-color: var(--medium); background: var(--medium-bg); }
+  .due-soon-date { font-weight: 600; min-width: 90px; font-size: 12px; }
+  .due-soon-date.overdue { color: var(--critical); }
+  .due-soon-date.due-this-week { color: var(--high); }
+  .due-soon-date.due-later { color: var(--medium); }
+  .due-soon-activity { flex: 1; }
+  .due-soon-component { font-size: 11px; color: var(--text-secondary); min-width: 180px; }
+  .due-soon-badge { margin-left: auto; }
+  .due-soon-header-row { display: flex; align-items: center; justify-content: space-between; }
+  .due-soon-count { font-size: 24px; font-weight: 700; color: var(--text); }
+
+  /* Add item modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 12px;
+    padding: 28px 32px;
+    width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+  .modal h2 { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+  .modal-field { margin-bottom: 14px; }
+  .modal-field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .modal-field input, .modal-field select, .modal-field textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    color: var(--text);
+  }
+  .modal-field textarea { resize: vertical; min-height: 60px; }
+  .modal-field input:focus, .modal-field select:focus, .modal-field textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  .modal-btn {
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: white;
+    color: var(--text);
+  }
+  .modal-btn:hover { background: #f8fafc; }
+  .modal-btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .modal-btn-primary:hover { background: #2563eb; }
+
+  /* Add item button */
+  .btn-add {
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: white;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-add:hover { background: var(--accent); color: white; }
+
+  @media (max-width: 1200px) {
+    .dashboard { grid-template-columns: repeat(2, 1fr); }
+    .component-grid { grid-template-columns: 1fr; }
+    .container { padding: 16px 20px; }
+  }
+
+  /* Info banner */
+  .info-banner {
+    background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 14px 24px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: #1e40af;
+    line-height: 1.6;
+  }
+  .info-banner strong { font-weight: 600; }
+  .info-banner .info-line { display: block; margin-bottom: 2px; }
+  .info-banner .info-line:last-child { margin-bottom: 0; }
+
+  /* Header actions wrap */
+  .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .btn-danger { background: rgba(220,38,38,0.15); border-color: rgba(220,38,38,0.3); color: #fecaca; }
+  .btn-danger:hover { background: rgba(220,38,38,0.3); }
+  .btn-success { background: rgba(22,163,74,0.15); border-color: rgba(22,163,74,0.3); color: #bbf7d0; }
+  .btn-success:hover { background: rgba(22,163,74,0.3); }
+  .header-actions .sep { width: 1px; height: 24px; background: rgba(255,255,255,0.2); margin: 0 4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>AI Risk Program Project Tracker</h1>
+    <div class="header-meta" id="lastUpdated">Last updated: --</div>
+  </div>
+  <div class="header-actions">
+    <button class="btn" onclick="exportCSV()">Export CSV</button>
+    <button class="btn btn-success" onclick="exportJSON()">Export JSON</button>
+    <button class="btn" onclick="document.getElementById('importJsonInput').click()">Import JSON</button>
+    <input type="file" id="importJsonInput" accept=".json,application/json" style="display:none" onchange="importJSON(event)">
+    <div class="sep"></div>
+    <button class="btn btn-danger" onclick="resetToDefault()">Reset to Default Data</button>
+    <span id="autoSaveIndicator" style="font-size:12px;opacity:0.6">Auto-saving enabled</span>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Info Banner -->
+  <div class="info-banner">
+    <span class="info-line"><strong>This is a static page</strong> &mdash; edits save to your browser only unless you export/import JSON.</span>
+    <span class="info-line">To share progress, export JSON and send it along with this HTML file, or paste the JSON into the importer on another machine.</span>
+  </div>
+
+  <!-- Dashboard Row 1: Summary Cards -->
+  <div class="dashboard">
+    <div class="dash-card">
+      <div class="dash-card-label">Total Work Items</div>
+      <div class="dash-card-value" id="totalItems">--</div>
+      <div class="dash-card-sub">Across 16 program components</div>
+    </div>
+    <div class="dash-card">
+      <div class="progress-ring">
+        <canvas id="progressRing" width="80" height="80"></canvas>
+        <div>
+          <div class="dash-card-label">Overall Completion</div>
+          <div class="dash-card-value" id="overallPct">0%</div>
+          <div class="dash-card-sub" id="completedCount">0 of 0 complete</div>
+        </div>
+      </div>
+    </div>
+    <div class="dash-card dash-wide">
+      <div class="dash-card-label">Progress by Priority</div>
+      <div class="priority-bars" id="priorityBars"></div>
+    </div>
+  </div>
+
+  <!-- Status Cards -->
+  <div class="status-row">
+    <div class="status-card" onclick="filterByStatus('Not Started')" id="card-Not-Started">
+      <div class="status-card-label"><span class="status-dot" style="background:var(--not-started)"></span>Not Started</div>
+      <div class="status-card-value" id="count-Not-Started">--</div>
+    </div>
+    <div class="status-card" onclick="filterByStatus('In Progress')" id="card-In-Progress">
+      <div class="status-card-label"><span class="status-dot" style="background:var(--in-progress)"></span>In Progress</div>
+      <div class="status-card-value" id="count-In-Progress">--</div>
+    </div>
+    <div class="status-card" onclick="filterByStatus('Blocked')" id="card-Blocked">
+      <div class="status-card-label"><span class="status-dot" style="background:var(--blocked)"></span>Blocked</div>
+      <div class="status-card-value" id="count-Blocked">--</div>
+    </div>
+    <div class="status-card" onclick="filterByStatus('Complete')" id="card-Complete">
+      <div class="status-card-label"><span class="status-dot" style="background:var(--complete)"></span>Complete</div>
+      <div class="status-card-value" id="count-Complete">--</div>
+    </div>
+  </div>
+
+  <!-- Due Within 30 Days -->
+  <div class="due-soon-section">
+    <div class="due-soon-header-row">
+      <div>
+        <h3>Due Within 30 Days</h3>
+        <div class="due-soon-sub">Items with target dates in the next 30 days (excludes completed items)</div>
+      </div>
+      <div class="due-soon-count" id="dueSoonCount">0</div>
+    </div>
+    <div id="dueSoonList"></div>
+  </div>
+
+  <!-- Component Progress -->
+  <div class="component-progress-section">
+    <h3>Progress by Program Component</h3>
+    <div class="component-grid" id="componentGrid"></div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="filter-group">
+      <label>Priority</label>
+      <select id="filterPriority" onchange="applyFilters()">
+        <option value="">All</option>
+        <option value="CRITICAL">Critical</option>
+        <option value="HIGH">High</option>
+        <option value="MEDIUM">Medium</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Status</label>
+      <select id="filterStatus" onchange="applyFilters()">
+        <option value="">All</option>
+        <option value="Not Started">Not Started</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Blocked">Blocked</option>
+        <option value="Complete">Complete</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Component</label>
+      <select id="filterComponent" onchange="applyFilters()"></select>
+    </div>
+    <div class="filter-group">
+      <label>Search</label>
+      <input type="text" class="search-input" id="searchInput" placeholder="Search activities, deliverables..." oninput="applyFilters()">
+    </div>
+    <button class="filter-clear" onclick="clearFilters()">Clear all filters</button>
+    <button class="btn-add" onclick="openAddModal()">+ Add Work Item</button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortTable('priority')">Priority <span class="sort-arrow">&#9650;</span></th>
+          <th onclick="sortTable('component')">Program Component <span class="sort-arrow">&#9650;</span></th>
+          <th onclick="sortTable('activity')">Key Activity <span class="sort-arrow">&#9650;</span></th>
+          <th onclick="sortTable('deliverable')">Deliverable / Output <span class="sort-arrow">&#9650;</span></th>
+          <th onclick="sortTable('sfsDri')">SFS DRI <span class="sort-arrow">&#9650;</span></th>
+          <th onclick="sortTable('blockDri')">Block DRI <span class="sort-arrow">&#9650;</span></th>
+          <th onclick="sortTable('status')">Status <span class="sort-arrow">&#9650;</span></th>
+          <th onclick="sortTable('date')">Target Date <span class="sort-arrow">&#9650;</span></th>
+          <th>Current State at Block</th>
+          <th>Artifacts / Links</th>
+          <th>Notes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="row-count" id="rowCount"></div>
+  </div>
+</div>
+
+<!-- Add Work Item Modal -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h2>Add New Work Item</h2>
+    <div class="modal-field">
+      <label>Program Component</label>
+      <select id="addComponent"></select>
+    </div>
+    <div class="modal-field">
+      <label>Priority</label>
+      <select id="addPriority">
+        <option value="CRITICAL">CRITICAL</option>
+        <option value="HIGH" selected>HIGH</option>
+        <option value="MEDIUM">MEDIUM</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>Key Activity</label>
+      <textarea id="addActivity" placeholder="Describe the activity..."></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Deliverable / Output</label>
+      <textarea id="addDeliverable" placeholder="What does done look like?"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>SFS DRI</label>
+      <input type="text" id="addSfsDri" placeholder="Assign SFS owner...">
+    </div>
+    <div class="modal-field">
+      <label>Block DRI</label>
+      <input type="text" id="addBlockDri" placeholder="Assign Block owner...">
+    </div>
+    <div class="modal-field">
+      <label>Target Date</label>
+      <input type="date" id="addDate">
+    </div>
+    <div class="modal-field">
+      <label>Notes</label>
+      <textarea id="addNotes" placeholder="Any additional context..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="closeAddModal()">Cancel</button>
+      <button class="modal-btn modal-btn-primary" onclick="addWorkItem()">Add Item</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="undo-bar" id="undoBar">
+  <span id="undoMsg">Item deleted</span>
+  <button class="undo-btn" onclick="undoDelete()">Undo</button>
+</div>
+
+<script>
+// === DEFAULT DATA (deep-frozen copy for reset) ===
+const DEFAULT_DATA = Object.freeze([
+  {priority:"CRITICAL",component:"AI Governance Structure",desc:"Establish oversight bodies, roles, and decision-making authority for AI risk management",activity:"Define Board/Executive oversight responsibilities",deliverable:"AI Governance Charter",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval process exists; No formal governance committee structure; No 2nd/3rd line AI oversight functions",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"AI Governance Structure",desc:"Establish oversight bodies, roles, and decision-making authority for AI risk management",activity:"Establish AI Executive Oversight Group or similar committee (for SFS this will be MCRC)",deliverable:"Committee meeting cadence and agendas",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval process exists; No formal governance committee structure; No 2nd/3rd line AI oversight functions",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"AI Governance Structure",desc:"Establish oversight bodies, roles, and decision-making authority for AI risk management",activity:"Create RACI matrix for AI decisions and approvals",deliverable:"AI Governance Charter",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval process exists; No formal governance committee structure; No 2nd/3rd line AI oversight functions",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"AI Governance Structure",desc:"Establish oversight bodies, roles, and decision-making authority for AI risk management",activity:"Define escalation paths for AI risks and incidents",deliverable:"Escalation procedures",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval process exists; No formal governance committee structure; No 2nd/3rd line AI oversight functions",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"AI Governance Structure",desc:"Establish oversight bodies, roles, and decision-making authority for AI risk management",activity:"Establish 2nd and 3rd line defense functions for AI",deliverable:"Annual governance effectiveness review",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval process exists; No formal governance committee structure; No 2nd/3rd line AI oversight functions",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"AI Policy Framework",desc:"Develop comprehensive policies governing AI development, deployment, and use across the organization",activity:"Create AI Acceptable Use Policy (role/function-specific)",deliverable:"AI Acceptable Use Policy",owner:"",status:"Not Started",date:"",currentState:"AI Legal Playbook exists; go/genaiapproval discusses some policies; No comprehensive AI policy framework; No defined risk appetite for AI",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"AI Policy Framework",desc:"Develop comprehensive policies governing AI development, deployment, and use across the organization",activity:"Define AI risk appetite and tolerance statements",deliverable:"AI Risk Appetite Statement",owner:"",status:"Not Started",date:"",currentState:"AI Legal Playbook exists; go/genaiapproval discusses some policies; No comprehensive AI policy framework; No defined risk appetite for AI",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"AI Policy Framework",desc:"Develop comprehensive policies governing AI development, deployment, and use across the organization",activity:"Establish AI Ethics Principles (fairness, transparency, accountability)",deliverable:"AI Ethics Principles",owner:"",status:"Not Started",date:"",currentState:"AI Legal Playbook exists; go/genaiapproval discusses some policies; No comprehensive AI policy framework; No defined risk appetite for AI",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"AI Policy Framework",desc:"Develop comprehensive policies governing AI development, deployment, and use across the organization",activity:"Create AI-specific policies for data usage, model development, deployment",deliverable:"AI Data Usage Policy; Model Development Standards",owner:"",status:"Not Started",date:"",currentState:"AI Legal Playbook exists; go/genaiapproval discusses some policies; No comprehensive AI policy framework; No defined risk appetite for AI",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"AI Policy Framework",desc:"Develop comprehensive policies governing AI development, deployment, and use across the organization",activity:"Define prohibited AI use cases",deliverable:"Prohibited Use Cases list",owner:"",status:"Not Started",date:"",currentState:"AI Legal Playbook exists; go/genaiapproval discusses some policies; No comprehensive AI policy framework; No defined risk appetite for AI",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Testing & Validation (TEVV)",desc:"Test, Evaluate, Verify, Validate AI systems before and after deployment",activity:"Define acceptance criteria and test plans",deliverable:"TEVV Plan template; Test acceptance criteria",owner:"",status:"Not Started",date:"",currentState:"Some testing for 3 customer-facing use cases; Scope and rigor unclear; No formal TEVV framework or standards; No bias testing methodology",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Testing & Validation (TEVV)",desc:"Test, Evaluate, Verify, Validate AI systems before and after deployment",activity:"Conduct accuracy/performance testing",deliverable:"Test results documentation",owner:"",status:"Not Started",date:"",currentState:"Some testing for 3 customer-facing use cases; Scope and rigor unclear; No formal TEVV framework or standards; No bias testing methodology",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Testing & Validation (TEVV)",desc:"Test, Evaluate, Verify, Validate AI systems before and after deployment",activity:"Perform bias and fairness testing (quantitative)",deliverable:"Bias/fairness test reports",owner:"",status:"Not Started",date:"",currentState:"Some testing for 3 customer-facing use cases; Scope and rigor unclear; No formal TEVV framework or standards; No bias testing methodology",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Testing & Validation (TEVV)",desc:"Test, Evaluate, Verify, Validate AI systems before and after deployment",activity:"Test security controls and guardrails",deliverable:"Security test results",owner:"",status:"Not Started",date:"",currentState:"Some testing for 3 customer-facing use cases; Scope and rigor unclear; No formal TEVV framework or standards; No bias testing methodology",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Testing & Validation (TEVV)",desc:"Test, Evaluate, Verify, Validate AI systems before and after deployment",activity:"Red team testing for adversarial attacks",deliverable:"Security test results",owner:"",status:"Not Started",date:"",currentState:"Some testing for 3 customer-facing use cases; Scope and rigor unclear; No formal TEVV framework or standards; No bias testing methodology",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Testing & Validation (TEVV)",desc:"Test, Evaluate, Verify, Validate AI systems before and after deployment",activity:"Validate explainability capabilities",deliverable:"Test results documentation",owner:"",status:"Not Started",date:"",currentState:"Some testing for 3 customer-facing use cases; Scope and rigor unclear; No formal TEVV framework or standards; No bias testing methodology",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Testing & Validation (TEVV)",desc:"Test, Evaluate, Verify, Validate AI systems before and after deployment",activity:"Ongoing validation of performance",deliverable:"Post-deployment validation schedule",owner:"",status:"Not Started",date:"",currentState:"Some testing for 3 customer-facing use cases; Scope and rigor unclear; No formal TEVV framework or standards; No bias testing methodology",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Testing & Validation (TEVV)",desc:"Test, Evaluate, Verify, Validate AI systems before and after deployment",activity:"Periodic re-testing (annual minimum)",deliverable:"Validation sign-off before go-live; Post-deployment validation schedule",owner:"",status:"Not Started",date:"",currentState:"Some testing for 3 customer-facing use cases; Scope and rigor unclear; No formal TEVV framework or standards; No bias testing methodology",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Monitoring & Oversight",desc:"Continuous monitoring of AI system performance, risks, and compliance with controls",activity:"Define monitoring metrics by use case (performance, drift, bias, security)",deliverable:"Monitoring framework and metrics",owner:"",status:"Not Started",date:"",currentState:"Ongoing monitoring status unknown; No defined metrics or thresholds; No Board reporting on AI risks; No 2nd/3rd line audit of AI systems",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Monitoring & Oversight",desc:"Continuous monitoring of AI system performance, risks, and compliance with controls",activity:"Set thresholds and alerting for metric violations",deliverable:"Threshold definitions; Automated alerting system",owner:"",status:"Not Started",date:"",currentState:"Ongoing monitoring status unknown; No defined metrics or thresholds; No Board reporting on AI risks; No 2nd/3rd line audit of AI systems",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Monitoring & Oversight",desc:"Continuous monitoring of AI system performance, risks, and compliance with controls",activity:"Monitor guardrail effectiveness",deliverable:"Monitoring dashboards",owner:"",status:"Not Started",date:"",currentState:"Ongoing monitoring status unknown; No defined metrics or thresholds; No Board reporting on AI risks; No 2nd/3rd line audit of AI systems",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Monitoring & Oversight",desc:"Continuous monitoring of AI system performance, risks, and compliance with controls",activity:"Track user activity for policy violations",deliverable:"Monitoring dashboards",owner:"",status:"Not Started",date:"",currentState:"Ongoing monitoring status unknown; No defined metrics or thresholds; No Board reporting on AI risks; No 2nd/3rd line audit of AI systems",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Monitoring & Oversight",desc:"Continuous monitoring of AI system performance, risks, and compliance with controls",activity:"Conduct periodic audits (internal/external)",deliverable:"Audit reports",owner:"",status:"Not Started",date:"",currentState:"Ongoing monitoring status unknown; No defined metrics or thresholds; No Board reporting on AI risks; No 2nd/3rd line audit of AI systems",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Monitoring & Oversight",desc:"Continuous monitoring of AI system performance, risks, and compliance with controls",activity:"Report AI risks to Board/Executive committees quarterly",deliverable:"Board/Executive reporting decks",owner:"",status:"Not Started",date:"",currentState:"Ongoing monitoring status unknown; No defined metrics or thresholds; No Board reporting on AI risks; No 2nd/3rd line audit of AI systems",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Third-Party Risk Management (AI-Specific)",desc:"Assess and monitor third-party AI vendors and foundational models",activity:"Develop AI-specific TPRM criteria (security, bias, explainability, reliability)",deliverable:"AI vendor assessment questionnaire",owner:"",status:"Not Started",date:"",currentState:"TPRM process at Block level unclear; No AI-specific vendor assessment criteria; No contingency plans for critical AI dependencies; Unknown vendor concentration risk",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Third-Party Risk Management (AI-Specific)",desc:"Assess and monitor third-party AI vendors and foundational models",activity:"Require vendor AI risk assessments before procurement",deliverable:"Vendor risk ratings",owner:"",status:"Not Started",date:"",currentState:"TPRM process at Block level unclear; No AI-specific vendor assessment criteria; No contingency plans for critical AI dependencies; Unknown vendor concentration risk",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Third-Party Risk Management (AI-Specific)",desc:"Assess and monitor third-party AI vendors and foundational models",activity:"Mandate 4th party disclosures in contracts",deliverable:"Vendor contracts with AI-specific clauses",owner:"",status:"Not Started",date:"",currentState:"TPRM process at Block level unclear; No AI-specific vendor assessment criteria; No contingency plans for critical AI dependencies; Unknown vendor concentration risk",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Third-Party Risk Management (AI-Specific)",desc:"Assess and monitor third-party AI vendors and foundational models",activity:"Establish audit rights and incident notification requirements",deliverable:"Vendor contracts with AI-specific clauses",owner:"",status:"Not Started",date:"",currentState:"TPRM process at Block level unclear; No AI-specific vendor assessment criteria; No contingency plans for critical AI dependencies; Unknown vendor concentration risk",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Third-Party Risk Management (AI-Specific)",desc:"Assess and monitor third-party AI vendors and foundational models",activity:"Monitor vendor concentration risk",deliverable:"Vendor concentration risk report",owner:"",status:"Not Started",date:"",currentState:"TPRM process at Block level unclear; No AI-specific vendor assessment criteria; No contingency plans for critical AI dependencies; Unknown vendor concentration risk",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Third-Party Risk Management (AI-Specific)",desc:"Assess and monitor third-party AI vendors and foundational models",activity:"Create contingency plans for critical AI vendor outages",deliverable:"Contingency plans by critical system",owner:"",status:"Not Started",date:"",currentState:"TPRM process at Block level unclear; No AI-specific vendor assessment criteria; No contingency plans for critical AI dependencies; Unknown vendor concentration risk",artifacts:"",notes:""},
+  {priority:"CRITICAL",component:"Third-Party Risk Management (AI-Specific)",desc:"Assess and monitor third-party AI vendors and foundational models",activity:"Conduct periodic vendor reviews",deliverable:"Vendor performance reviews",owner:"",status:"Not Started",date:"",currentState:"TPRM process at Block level unclear; No AI-specific vendor assessment criteria; No contingency plans for critical AI dependencies; Unknown vendor concentration risk",artifacts:"",notes:""},
+  {priority:"HIGH",component:"AI Inventory & Classification",desc:"Maintain complete inventory of AI systems with risk classifications",activity:"Catalog all AI systems (internal, external, vendor-provided)",deliverable:"Complete AI system inventory",owner:"",status:"Not Started",date:"",currentState:"Centralized AI inventory - https://airtable.com/app6DYKPZ5aywR6kQ/pagiBIgKPDETxJAMk",artifacts:"",notes:""},
+  {priority:"HIGH",component:"AI Inventory & Classification",desc:"Maintain complete inventory of AI systems with risk classifications",activity:"Classify by risk level (high/medium/low based on business impact)",deliverable:"Risk classification methodology",owner:"",status:"Not Started",date:"",currentState:"Centralized AI inventory - https://airtable.com/app6DYKPZ5aywR6kQ/pagiBIgKPDETxJAMk",artifacts:"",notes:""},
+  {priority:"HIGH",component:"AI Inventory & Classification",desc:"Maintain complete inventory of AI systems with risk classifications",activity:"Document system owners, purpose, data sources, stakeholders",deliverable:"System ownership documentation",owner:"",status:"Not Started",date:"",currentState:"Centralized AI inventory - https://airtable.com/app6DYKPZ5aywR6kQ/pagiBIgKPDETxJAMk",artifacts:"",notes:""},
+  {priority:"HIGH",component:"AI Inventory & Classification",desc:"Maintain complete inventory of AI systems with risk classifications",activity:"Track AI adoption stage by use case",deliverable:"Regular inventory updates (quarterly)",owner:"",status:"Not Started",date:"",currentState:"Centralized AI inventory - https://airtable.com/app6DYKPZ5aywR6kQ/pagiBIgKPDETxJAMk",artifacts:"",notes:""},
+  {priority:"HIGH",component:"AI Inventory & Classification",desc:"Maintain complete inventory of AI systems with risk classifications",activity:"Identify shadow AI and bring into inventory",deliverable:"Shadow AI remediation plan",owner:"",status:"Not Started",date:"",currentState:"Centralized AI inventory - https://airtable.com/app6DYKPZ5aywR6kQ/pagiBIgKPDETxJAMk",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Intake & Approval Process",desc:"Standardized process for reviewing and approving new AI use cases before deployment",activity:"Create intake/request form for new AI initiatives",deliverable:"AI Intake Form",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval process exists but scope/rigor unclear; Unknown if all use cases go through review; No risk-based tiering of approvals",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Intake & Approval Process",desc:"Standardized process for reviewing and approving new AI use cases before deployment",activity:"Define approval workflow by risk classification",deliverable:"Approval workflow documentation",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval process exists but scope/rigor unclear; Unknown if all use cases go through review; No risk-based tiering of approvals",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Intake & Approval Process",desc:"Standardized process for reviewing and approving new AI use cases before deployment",activity:"Establish cross-functional review team (Legal, Risk, InfoSec, Compliance, TPRM)",deliverable:"Review checklist by function",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval process exists but scope/rigor unclear; Unknown if all use cases go through review; No risk-based tiering of approvals",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Intake & Approval Process",desc:"Standardized process for reviewing and approving new AI use cases before deployment",activity:"Set approval criteria and SLAs by risk tier",deliverable:"Approval workflow documentation",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval process exists but scope/rigor unclear; Unknown if all use cases go through review; No risk-based tiering of approvals",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Intake & Approval Process",desc:"Standardized process for reviewing and approving new AI use cases before deployment",activity:"Require sign-offs before production deployment",deliverable:"Decision logs with rationale; Approval tracking dashboard",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval process exists but scope/rigor unclear; Unknown if all use cases go through review; No risk-based tiering of approvals",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Risk Assessment Process",desc:"Systematic identification and assessment of AI-specific risks for each use case",activity:"Conduct initial risk assessment during intake",deliverable:"Risk assessment template",owner:"",status:"Not Started",date:"",currentState:"Some risk discussion in approval process; Block's AI Legal Playbook does have a risk rating methodology which they use to assign a risk tier to each use case in go/genaiapproval. It is based on the use case and aligns with the EU Act. We were planning to adopt that methodology for now to align with Block.; No 2nd line challenge process",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Risk Assessment Process",desc:"Systematic identification and assessment of AI-specific risks for each use case",activity:"Identify risks: hallucination, bias, privacy, security, explainability, third-party",deliverable:"Risk assessment template; Risk rating methodology",owner:"",status:"Not Started",date:"",currentState:"Some risk discussion in approval process; Block's AI Legal Playbook does have a risk rating methodology which they use to assign a risk tier to each use case in go/genaiapproval. It is based on the use case and aligns with the EU Act. We were planning to adopt that methodology for now to align with Block.; No 2nd line challenge process",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Risk Assessment Process",desc:"Systematic identification and assessment of AI-specific risks for each use case",activity:"Document risk ratings (inherent and residual risk)",deliverable:"Risk register for AI systems",owner:"",status:"Not Started",date:"",currentState:"Some risk discussion in approval process; Block's AI Legal Playbook does have a risk rating methodology which they use to assign a risk tier to each use case in go/genaiapproval. It is based on the use case and aligns with the EU Act. We were planning to adopt that methodology for now to align with Block.; No 2nd line challenge process",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Risk Assessment Process",desc:"Systematic identification and assessment of AI-specific risks for each use case",activity:"Define mitigation plans for identified risks",deliverable:"Mitigation plans",owner:"",status:"Not Started",date:"",currentState:"Some risk discussion in approval process; Block's AI Legal Playbook does have a risk rating methodology which they use to assign a risk tier to each use case in go/genaiapproval. It is based on the use case and aligns with the EU Act. We were planning to adopt that methodology for now to align with Block.; No 2nd line challenge process",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Risk Assessment Process",desc:"Systematic identification and assessment of AI-specific risks for each use case",activity:"Require 2nd line challenge for high-risk use cases",deliverable:"2nd line review documentation",owner:"",status:"Not Started",date:"",currentState:"Some risk discussion in approval process; Block's AI Legal Playbook does have a risk rating methodology which they use to assign a risk tier to each use case in go/genaiapproval. It is based on the use case and aligns with the EU Act. We were planning to adopt that methodology for now to align with Block.; No 2nd line challenge process",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Risk Assessment Process",desc:"Systematic identification and assessment of AI-specific risks for each use case",activity:"Reassess risk periodically (annual minimum)",deliverable:"Risk reassessment schedule",owner:"",status:"Not Started",date:"",currentState:"Some risk discussion in approval process; Block's AI Legal Playbook does have a risk rating methodology which they use to assign a risk tier to each use case in go/genaiapproval. It is based on the use case and aligns with the EU Act. We were planning to adopt that methodology for now to align with Block.; No 2nd line challenge process",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Explainability & Transparency",desc:"Capabilities to explain AI decisions and provide transparency to users and regulators",activity:"Define explainability requirements by use case risk level",deliverable:"Explainability requirements matrix",owner:"",status:"Not Started",date:"",currentState:"No explainability framework; No tools or processes for generating explanations; High regulatory risk for financial services AI; Cannot support adverse action requirements",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Explainability & Transparency",desc:"Capabilities to explain AI decisions and provide transparency to users and regulators",activity:"Implement model interpretability techniques (SHAP, LIME, attention maps)",deliverable:"Interpretability tools implementation",owner:"",status:"Not Started",date:"",currentState:"No explainability framework; No tools or processes for generating explanations; High regulatory risk for financial services AI; Cannot support adverse action requirements",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Explainability & Transparency",desc:"Capabilities to explain AI decisions and provide transparency to users and regulators",activity:"Create decision logging with contributing factors",deliverable:"Decision logging framework",owner:"",status:"Not Started",date:"",currentState:"No explainability framework; No tools or processes for generating explanations; High regulatory risk for financial services AI; Cannot support adverse action requirements",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Explainability & Transparency",desc:"Capabilities to explain AI decisions and provide transparency to users and regulators",activity:"Design human-interpretable audit trails",deliverable:"Audit trail specifications",owner:"",status:"Not Started",date:"",currentState:"No explainability framework; No tools or processes for generating explanations; High regulatory risk for financial services AI; Cannot support adverse action requirements",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Explainability & Transparency",desc:"Capabilities to explain AI decisions and provide transparency to users and regulators",activity:"Enable adverse action notice generation for regulated decisions",deliverable:"Adverse action notice templates",owner:"",status:"Not Started",date:"",currentState:"No explainability framework; No tools or processes for generating explanations; High regulatory risk for financial services AI; Cannot support adverse action requirements",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Explainability & Transparency",desc:"Capabilities to explain AI decisions and provide transparency to users and regulators",activity:"Provide transparency to end users about AI usage",deliverable:"User transparency disclosures",owner:"",status:"Not Started",date:"",currentState:"No explainability framework; No tools or processes for generating explanations; High regulatory risk for financial services AI; Cannot support adverse action requirements",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Cybersecurity for AI",desc:"Security controls specific to AI systems including adversarial attack prevention",activity:"Implement input validation and sanitization",deliverable:"AI security standards",owner:"",status:"Not Started",date:"",currentState:"Individual tools reviewed for security; Security Playbook in development; No standardized adversarial testing; Unclear if prompt injection defenses exist",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Cybersecurity for AI",desc:"Security controls specific to AI systems including adversarial attack prevention",activity:"Deploy prompt injection detection and blocking",deliverable:"Prompt injection defenses",owner:"",status:"Not Started",date:"",currentState:"Individual tools reviewed for security; Security Playbook in development; No standardized adversarial testing; Unclear if prompt injection defenses exist",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Cybersecurity for AI",desc:"Security controls specific to AI systems including adversarial attack prevention",activity:"Conduct red team testing for adversarial attacks",deliverable:"Adversarial testing reports",owner:"",status:"Not Started",date:"",currentState:"Individual tools reviewed for security; Security Playbook in development; No standardized adversarial testing; Unclear if prompt injection defenses exist",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Cybersecurity for AI",desc:"Security controls specific to AI systems including adversarial attack prevention",activity:"Apply rate limiting and anomaly detection",deliverable:"Security monitoring dashboards",owner:"",status:"Not Started",date:"",currentState:"Individual tools reviewed for security; Security Playbook in development; No standardized adversarial testing; Unclear if prompt injection defenses exist",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Cybersecurity for AI",desc:"Security controls specific to AI systems including adversarial attack prevention",activity:"Establish model access controls and API security",deliverable:"AI security standards",owner:"",status:"Not Started",date:"",currentState:"Individual tools reviewed for security; Security Playbook in development; No standardized adversarial testing; Unclear if prompt injection defenses exist",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Cybersecurity for AI",desc:"Security controls specific to AI systems including adversarial attack prevention",activity:"Monitor for jailbreak attempts",deliverable:"Security monitoring dashboards",owner:"",status:"Not Started",date:"",currentState:"Individual tools reviewed for security; Security Playbook in development; No standardized adversarial testing; Unclear if prompt injection defenses exist",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Cybersecurity for AI",desc:"Security controls specific to AI systems including adversarial attack prevention",activity:"Test for policy circumvention scenarios",deliverable:"Penetration test results",owner:"",status:"Not Started",date:"",currentState:"Individual tools reviewed for security; Security Playbook in development; No standardized adversarial testing; Unclear if prompt injection defenses exist",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Training & Awareness",desc:"Educate employees on AI risks, policies, and safe usage practices",activity:"Develop role-specific AI training: General employee - Acceptable use, data security",deliverable:"Training curriculum by role; Training materials and videos",owner:"",status:"Not Started",date:"",currentState:"Unknown training efforts; No formal AI risk training program; No role-specific guidance; Users lack confidence to use AI safely",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Training & Awareness",desc:"Educate employees on AI risks, policies, and safe usage practices",activity:"Develop role-specific AI training: Developers - Secure AI development, bias testing",deliverable:"Training curriculum by role; Training materials and videos",owner:"",status:"Not Started",date:"",currentState:"Unknown training efforts; No formal AI risk training program; No role-specific guidance; Users lack confidence to use AI safely",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Training & Awareness",desc:"Educate employees on AI risks, policies, and safe usage practices",activity:"Develop role-specific AI training: Risk/Compliance - AI risk assessment",deliverable:"Training curriculum by role; Training materials and videos",owner:"",status:"Not Started",date:"",currentState:"Unknown training efforts; No formal AI risk training program; No role-specific guidance; Users lack confidence to use AI safely",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Training & Awareness",desc:"Educate employees on AI risks, policies, and safe usage practices",activity:"Develop role-specific AI training: Leadership - AI governance oversight",deliverable:"Training curriculum by role; Training materials and videos",owner:"",status:"Not Started",date:"",currentState:"Unknown training efforts; No formal AI risk training program; No role-specific guidance; Users lack confidence to use AI safely",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Training & Awareness",desc:"Educate employees on AI risks, policies, and safe usage practices",activity:"Create safe experimentation guidelines",deliverable:"Safe experimentation guide",owner:"",status:"Not Started",date:"",currentState:"Unknown training efforts; No formal AI risk training program; No role-specific guidance; Users lack confidence to use AI safely",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Training & Awareness",desc:"Educate employees on AI risks, policies, and safe usage practices",activity:"Conduct regular refresher training",deliverable:"Training completion tracking; Policy awareness campaigns",owner:"",status:"Not Started",date:"",currentState:"Unknown training efforts; No formal AI risk training program; No role-specific guidance; Users lack confidence to use AI safely",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Training & Awareness",desc:"Educate employees on AI risks, policies, and safe usage practices",activity:"Measure training effectiveness",deliverable:"Training effectiveness surveys",owner:"",status:"Not Started",date:"",currentState:"Unknown training efforts; No formal AI risk training program; No role-specific guidance; Users lack confidence to use AI safely",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Training & Awareness",desc:"Educate employees on AI risks, policies, and safe usage practices",activity:"Communicate policy updates",deliverable:"Policy awareness campaigns",owner:"",status:"Not Started",date:"",currentState:"Unknown training efforts; No formal AI risk training program; No role-specific guidance; Users lack confidence to use AI safely",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Documentation Standards",desc:"Requirements for documenting AI systems to support audits and regulatory inquiries",activity:"Define documentation requirements by AI risk level",deliverable:"Documentation standards by risk tier",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval may create some documentation; No documentation standards; No centralized repository; Cannot respond to regulatory documentation requests",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Documentation Standards",desc:"Requirements for documenting AI systems to support audits and regulatory inquiries",activity:"Centralize documentation repository",deliverable:"Centralized repository; Documentation review checklist; Version control for documentation",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval may create some documentation; No documentation standards; No centralized repository; Cannot respond to regulatory documentation requests",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Documentation Standards",desc:"Requirements for documenting AI systems to support audits and regulatory inquiries",activity:"Require documentation updates with system changes",deliverable:"Documentation templates; Retention schedules",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval may create some documentation; No documentation standards; No centralized repository; Cannot respond to regulatory documentation requests",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Regulatory Compliance Management",desc:"Track, assess, and ensure compliance with AI-related regulations",activity:"Establish regulatory monitoring team (Legal, Risk, Compliance)",deliverable:"Regulatory horizon scanning process",owner:"",status:"Not Started",date:"",currentState:"AI Legal Playbook tracks regulations; No proactive gap assessment against NIST/FS AI RMF; Unknown audit readiness; Reactive vs. proactive posture",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Regulatory Compliance Management",desc:"Track, assess, and ensure compliance with AI-related regulations",activity:"Track emerging AI regulations (federal, state, international)",deliverable:"Regulatory horizon scanning process",owner:"",status:"Not Started",date:"",currentState:"AI Legal Playbook tracks regulations; No proactive gap assessment against NIST/FS AI RMF; Unknown audit readiness; Reactive vs. proactive posture",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Regulatory Compliance Management",desc:"Track, assess, and ensure compliance with AI-related regulations",activity:"Conduct gap assessments against NIST AI RMF and FS AI RMF",deliverable:"Gap assessment reports (NIST, FS AI RMF)",owner:"",status:"Not Started",date:"",currentState:"AI Legal Playbook tracks regulations; No proactive gap assessment against NIST/FS AI RMF; Unknown audit readiness; Reactive vs. proactive posture",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Regulatory Compliance Management",desc:"Track, assess, and ensure compliance with AI-related regulations",activity:"Map controls to regulatory requirements",deliverable:"Control-to-regulation mapping",owner:"",status:"Not Started",date:"",currentState:"AI Legal Playbook tracks regulations; No proactive gap assessment against NIST/FS AI RMF; Unknown audit readiness; Reactive vs. proactive posture",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Regulatory Compliance Management",desc:"Track, assess, and ensure compliance with AI-related regulations",activity:"Maintain compliance evidence repository",deliverable:"Compliance evidence repository",owner:"",status:"Not Started",date:"",currentState:"AI Legal Playbook tracks regulations; No proactive gap assessment against NIST/FS AI RMF; Unknown audit readiness; Reactive vs. proactive posture",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Regulatory Compliance Management",desc:"Track, assess, and ensure compliance with AI-related regulations",activity:"Coordinate with regulators on AI examinations",deliverable:"Regulatory examination response procedures",owner:"",status:"Not Started",date:"",currentState:"AI Legal Playbook tracks regulations; No proactive gap assessment against NIST/FS AI RMF; Unknown audit readiness; Reactive vs. proactive posture",artifacts:"",notes:""},
+  {priority:"HIGH",component:"Regulatory Compliance Management",desc:"Track, assess, and ensure compliance with AI-related regulations",activity:"Update controls as regulations evolve",deliverable:"Compliance dashboard for leadership",owner:"",status:"Not Started",date:"",currentState:"AI Legal Playbook tracks regulations; No proactive gap assessment against NIST/FS AI RMF; Unknown audit readiness; Reactive vs. proactive posture",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Model Development Standards",desc:"Standards and best practices for developing, documenting, and versioning AI models",activity:"Define secure coding practices for AI",deliverable:"Secure coding guidelines",owner:"",status:"Not Started",date:"",currentState:"Unknown if any standards exist; No model documentation requirements; No formal MDLC",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Model Development Standards",desc:"Standards and best practices for developing, documenting, and versioning AI models",activity:"Require version control for models and training data",deliverable:"Version control requirements",owner:"",status:"Not Started",date:"",currentState:"Unknown if any standards exist; No model documentation requirements; No formal MDLC",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Model Development Standards",desc:"Standards and best practices for developing, documenting, and versioning AI models",activity:"Document model architecture, assumptions, limitations",deliverable:"Model documentation template",owner:"",status:"Not Started",date:"",currentState:"Unknown if any standards exist; No model documentation requirements; No formal MDLC",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Model Development Standards",desc:"Standards and best practices for developing, documenting, and versioning AI models",activity:"Mandate peer review for model changes",deliverable:"Peer review process",owner:"",status:"Not Started",date:"",currentState:"Unknown if any standards exist; No model documentation requirements; No formal MDLC",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Model Development Standards",desc:"Standards and best practices for developing, documenting, and versioning AI models",activity:"Establish model development lifecycle (MDLC) stages",deliverable:"MDLC stage gates; Model development standards document",owner:"",status:"Not Started",date:"",currentState:"Unknown if any standards exist; No model documentation requirements; No formal MDLC",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Model Development Standards",desc:"Standards and best practices for developing, documenting, and versioning AI models",activity:"Require explainability/interpretability by design for high-risk models",deliverable:"Model development standards document",owner:"",status:"Not Started",date:"",currentState:"Unknown if any standards exist; No model documentation requirements; No formal MDLC",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Incident Response & Learning",desc:"Procedures for detecting, responding to, and learning from AI incidents",activity:"Define AI incident categories (hallucination, bias, security breach, privacy leak)",deliverable:"Incident classification scheme",owner:"",status:"Not Started",date:"",currentState:"Sev / incident tracking process is in place / but needs to further evolve for AI",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Incident Response & Learning",desc:"Procedures for detecting, responding to, and learning from AI incidents",activity:"Establish incident response team and procedures",deliverable:"AI incident response plan; Response team RACI",owner:"",status:"Not Started",date:"",currentState:"Sev / incident tracking process is in place / but needs to further evolve for AI",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Incident Response & Learning",desc:"Procedures for detecting, responding to, and learning from AI incidents",activity:"Create escalation criteria",deliverable:"AI incident response plan",owner:"",status:"Not Started",date:"",currentState:"Sev / incident tracking process is in place / but needs to further evolve for AI",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Incident Response & Learning",desc:"Procedures for detecting, responding to, and learning from AI incidents",activity:"Document root cause analysis process",deliverable:"Post-incident review template; Lessons learned documentation",owner:"",status:"Not Started",date:"",currentState:"Sev / incident tracking process is in place / but needs to further evolve for AI",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Incident Response & Learning",desc:"Procedures for detecting, responding to, and learning from AI incidents",activity:"Maintain incident log",deliverable:"Incident log/database",owner:"",status:"Not Started",date:"",currentState:"Sev / incident tracking process is in place / but needs to further evolve for AI",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Incident Response & Learning",desc:"Procedures for detecting, responding to, and learning from AI incidents",activity:"Conduct post-incident reviews",deliverable:"Post-incident review template; Lessons learned documentation",owner:"",status:"Not Started",date:"",currentState:"Sev / incident tracking process is in place / but needs to further evolve for AI",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Incident Response & Learning",desc:"Procedures for detecting, responding to, and learning from AI incidents",activity:"Update controls based on lessons learned",deliverable:"Lessons learned documentation",owner:"",status:"Not Started",date:"",currentState:"Sev / incident tracking process is in place / but needs to further evolve for AI",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Incident Response & Learning",desc:"Procedures for detecting, responding to, and learning from AI incidents",activity:"Report material incidents to Board",deliverable:"Board reporting on material incidents",owner:"",status:"Not Started",date:"",currentState:"Sev / incident tracking process is in place / but needs to further evolve for AI",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Stakeholder Engagement",desc:"Processes to engage internal and external stakeholders in AI development and deployment",activity:"Require cross-functional teams in AI development",deliverable:"Stakeholder engagement plan by use case; Diverse team composition requirements",owner:"",status:"Not Started",date:"",currentState:"Unknown stakeholder engagement requirements; No feedback mechanisms for deployed AI; No diversity requirements for AI teams",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Stakeholder Engagement",desc:"Processes to engage internal and external stakeholders in AI development and deployment",activity:"Include diverse perspectives in design reviews",deliverable:"Diverse team composition requirements",owner:"",status:"Not Started",date:"",currentState:"Unknown stakeholder engagement requirements; No feedback mechanisms for deployed AI; No diversity requirements for AI teams",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Stakeholder Engagement",desc:"Processes to engage internal and external stakeholders in AI development and deployment",activity:"Conduct user experience research for AI features",deliverable:"User feedback mechanisms",owner:"",status:"Not Started",date:"",currentState:"Unknown stakeholder engagement requirements; No feedback mechanisms for deployed AI; No diversity requirements for AI teams",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Stakeholder Engagement",desc:"Processes to engage internal and external stakeholders in AI development and deployment",activity:"Implement phased deployments with feedback collection",deliverable:"Phased deployment criteria",owner:"",status:"Not Started",date:"",currentState:"Unknown stakeholder engagement requirements; No feedback mechanisms for deployed AI; No diversity requirements for AI teams",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Stakeholder Engagement",desc:"Processes to engage internal and external stakeholders in AI development and deployment",activity:"Create ongoing feedback mechanisms (surveys, support tickets)",deliverable:"User feedback mechanisms",owner:"",status:"Not Started",date:"",currentState:"Unknown stakeholder engagement requirements; No feedback mechanisms for deployed AI; No diversity requirements for AI teams",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Stakeholder Engagement",desc:"Processes to engage internal and external stakeholders in AI development and deployment",activity:"Consult external stakeholders for high-risk AI",deliverable:"External consultation process",owner:"",status:"Not Started",date:"",currentState:"Unknown stakeholder engagement requirements; No feedback mechanisms for deployed AI; No diversity requirements for AI teams",artifacts:"",notes:""},
+  {priority:"MEDIUM",component:"Stakeholder Engagement",desc:"Processes to engage internal and external stakeholders in AI development and deployment",activity:"Publish transparency reports on AI usage",deliverable:"Transparency report template",owner:"",status:"Not Started",date:"",currentState:"Unknown stakeholder engagement requirements; No feedback mechanisms for deployed AI; No diversity requirements for AI teams",artifacts:"",notes:""}
+
+].map(function(item) { return Object.freeze(Object.assign({}, item)); }));
+
+// === Working copy of data ===
+const DATA = DEFAULT_DATA.map(function(item) { return Object.assign({}, item); });
+
+let currentSort = { key: null, asc: true };
+let activeStatusFilter = null;
+let lastDeleted = null;
+let undoTimeout = null;
+
+// === localStorage helpers (all wrapped in try/catch) ===
+function storageGet(key) {
+  try { return localStorage.getItem(key); } catch(e) { return null; }
+}
+function storageSet(key, val) {
+  try { localStorage.setItem(key, val); } catch(e) { /* localStorage unavailable */ }
+}
+function storageRemove(key) {
+  try { localStorage.removeItem(key); } catch(e) { /* localStorage unavailable */ }
+}
+
+function loadSaved() {
+  var saved = storageGet('ai-risk-tracker-v2');
+  if (saved) {
+    try {
+      var parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        DATA.length = 0;
+        parsed.forEach(function(s) { DATA.push(s); });
+      }
+    } catch(e) {
+      console.warn('Failed to parse saved data, using defaults', e);
+      storageRemove('ai-risk-tracker-v2');
+    }
+  }
+  var ts = storageGet('ai-risk-tracker-ts');
+  if (ts) document.getElementById('lastUpdated').textContent = 'Last saved: ' + ts;
+}
+
+function autoSave() {
+  storageSet('ai-risk-tracker-v2', JSON.stringify(DATA));
+  var now = new Date().toLocaleString();
+  storageSet('ai-risk-tracker-ts', now);
+  document.getElementById('lastUpdated').textContent = 'Last saved: ' + now;
+  var ind = document.getElementById('autoSaveIndicator');
+  ind.textContent = 'Saved';
+  ind.style.opacity = '1';
+  setTimeout(function() { ind.textContent = 'Auto-saving enabled'; ind.style.opacity = '0.6'; }, 1500);
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+// === Export / Import / Reset ===
+function exportJSON() {
+  var json = JSON.stringify(DATA, null, 2);
+  var blob = new Blob([json], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'AI_Risk_Program_Tracker.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('JSON exported');
+}
+
+function importJSON(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var parsed = JSON.parse(e.target.result);
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        alert('Invalid JSON file: must be a non-empty array of work items.');
+        return;
+      }
+      // Validate that items have at least component and activity
+      var valid = parsed.every(function(item) {
+        return item && typeof item.component === 'string' && typeof item.activity === 'string';
+      });
+      if (!valid) {
+        alert('Invalid JSON format: each item must have at least "component" and "activity" fields.');
+        return;
+      }
+      if (!confirm('Import ' + parsed.length + ' work items? This will replace all current data.')) return;
+      DATA.length = 0;
+      parsed.forEach(function(item) { DATA.push(item); });
+      autoSave();
+      populateComponentFilter();
+      renderDashboard();
+      renderTable();
+      showToast('Imported ' + parsed.length + ' work items from JSON');
+    } catch(err) {
+      alert('Failed to parse JSON file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  // Reset the input so the same file can be re-imported
+  event.target.value = '';
+}
+
+function resetToDefault() {
+  if (!confirm('Reset all data to the original built-in defaults?\n\nThis will discard all your edits. You can export JSON first to keep a backup.')) return;
+  DATA.length = 0;
+  DEFAULT_DATA.forEach(function(item) { DATA.push(Object.assign({}, item)); });
+  autoSave();
+  populateComponentFilter();
+  renderDashboard();
+  renderTable();
+  showToast('Data reset to defaults');
+}
+
+// === Filtering ===
+function getFiltered() {
+  var p = document.getElementById('filterPriority').value;
+  var s = document.getElementById('filterStatus').value;
+  var c = document.getElementById('filterComponent').value;
+  var q = document.getElementById('searchInput').value.toLowerCase();
+  return DATA.filter(function(d) {
+    if (p && d.priority !== p) return false;
+    if (s && d.status !== s) return false;
+    if (c && d.component !== c) return false;
+    if (q && !(d.activity.toLowerCase().includes(q) || d.deliverable.toLowerCase().includes(q) || d.component.toLowerCase().includes(q) || (d.sfsDri||d.owner||'').toLowerCase().includes(q) || (d.blockDri||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+
+// === Dashboard ===
+function renderDashboard() {
+  var total = DATA.length;
+  var complete = DATA.filter(function(d) { return d.status === 'Complete'; }).length;
+  var pct = total ? Math.round((complete / total) * 100) : 0;
+
+  document.getElementById('totalItems').textContent = total;
+  document.getElementById('overallPct').textContent = pct + '%';
+  document.getElementById('completedCount').textContent = complete + ' of ' + total + ' complete';
+
+  // Progress ring
+  var canvas = document.getElementById('progressRing');
+  var ctx = canvas.getContext('2d');
+  var size = 80, cx = size/2, cy = size/2, r = 32, lw = 8;
+  ctx.clearRect(0, 0, size, size);
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = lw; ctx.stroke();
+  if (pct > 0) {
+    ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + (Math.PI*2*pct/100)); ctx.strokeStyle = '#16a34a'; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.stroke();
+  }
+  ctx.fillStyle = '#1a202c'; ctx.font = 'bold 16px -apple-system, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(pct + '%', cx, cy);
+
+  // Priority bars
+  var priorities = ['CRITICAL', 'HIGH', 'MEDIUM'];
+  var colors = { CRITICAL: '#dc2626', HIGH: '#f59e0b', MEDIUM: '#3b82f6' };
+  var barsHtml = priorities.map(function(p) {
+    var items = DATA.filter(function(d) { return d.priority === p; });
+    var done = items.filter(function(d) { return d.status === 'Complete'; }).length;
+    var ppct = items.length ? Math.round((done / items.length) * 100) : 0;
+    return '<div class="priority-bar-row">' +
+      '<span class="priority-bar-label" style="color:' + colors[p] + '">' + p + '</span>' +
+      '<div class="priority-bar-track"><div class="priority-bar-fill" style="width:' + Math.max(ppct, 2) + '%;background:' + colors[p] + '">' + ppct + '%</div></div>' +
+      '<span class="priority-bar-count">' + done + '/' + items.length + '</span>' +
+    '</div>';
+  }).join('');
+  document.getElementById('priorityBars').innerHTML = barsHtml;
+
+  // Status counts
+  ['Not Started', 'In Progress', 'Blocked', 'Complete'].forEach(function(s) {
+    var key = s.replace(' ', '-');
+    document.getElementById('count-' + key).textContent = DATA.filter(function(d) { return d.status === s; }).length;
+    var card = document.getElementById('card-' + key);
+    card.classList.toggle('active', activeStatusFilter === s);
+  });
+
+  // Component progress
+  var components = []; var seen = {};
+  DATA.forEach(function(d) { if (!seen[d.component]) { seen[d.component] = true; components.push(d.component); } });
+  var gridHtml = components.map(function(c) {
+    var items = DATA.filter(function(d) { return d.component === c; });
+    var done = items.filter(function(d) { return d.status === 'Complete'; }).length;
+    var cpct = items.length ? Math.round((done / items.length) * 100) : 0;
+    return '<div class="comp-row">' +
+      '<span class="comp-name" title="' + c + '">' + c + '</span>' +
+      '<div class="comp-bar-track"><div class="comp-bar-fill" style="width:' + cpct + '%"></div></div>' +
+      '<span class="comp-pct">' + cpct + '%</span>' +
+    '</div>';
+  }).join('');
+  document.getElementById('componentGrid').innerHTML = gridHtml;
+
+  // Due soon
+  renderDueSoon();
+}
+
+function renderDueSoon() {
+  var today = new Date();
+  today.setHours(0,0,0,0);
+  var in30 = new Date(today);
+  in30.setDate(in30.getDate() + 30);
+  var in7 = new Date(today);
+  in7.setDate(in7.getDate() + 7);
+
+  var dueSoon = DATA.filter(function(d) {
+    if (!d.date || d.status === 'Complete') return false;
+    var dt = new Date(d.date + 'T00:00:00');
+    return dt <= in30;
+  }).sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+
+  document.getElementById('dueSoonCount').textContent = dueSoon.length;
+
+  if (dueSoon.length === 0) {
+    document.getElementById('dueSoonList').innerHTML = '<div class="due-soon-empty">No items due in the next 30 days. Set target dates on work items to see them here.</div>';
+    return;
+  }
+
+  var html = '<div class="due-soon-list">' + dueSoon.map(function(d) {
+    var dt = new Date(d.date + 'T00:00:00');
+    var diff = Math.ceil((dt - today) / (1000 * 60 * 60 * 24));
+    var cls, dateLabel;
+    if (diff < 0) {
+      cls = 'overdue';
+      dateLabel = Math.abs(diff) + ' day' + (Math.abs(diff) !== 1 ? 's' : '') + ' overdue';
+    } else if (diff === 0) {
+      cls = 'overdue';
+      dateLabel = 'Due today';
+    } else if (dt <= in7) {
+      cls = 'due-this-week';
+      dateLabel = 'In ' + diff + ' day' + (diff !== 1 ? 's' : '');
+    } else {
+      cls = 'due-later';
+      dateLabel = 'In ' + diff + ' days';
+    }
+    return '<div class="due-soon-item ' + cls + '">' +
+      '<span class="due-soon-date ' + cls + '">' + dateLabel + '<br><span style="font-weight:400;font-size:11px">' + d.date + '</span></span>' +
+      '<span class="due-soon-activity">' + d.activity + '</span>' +
+      '<span class="due-soon-component">' + d.component + '</span>' +
+      '<span class="due-soon-badge"><span class="priority-badge priority-' + d.priority + '">' + d.priority + '</span></span>' +
+      '<span class="priority-badge priority-' + (d.status === 'Blocked' ? 'CRITICAL' : 'MEDIUM') + '" style="font-size:10px">' + d.status + '</span>' +
+    '</div>';
+  }).join('') + '</div>';
+  document.getElementById('dueSoonList').innerHTML = html;
+}
+
+// === Table ===
+function renderTable() {
+  var filtered = getFiltered();
+  var sorted = filtered.slice();
+  if (currentSort.key) {
+    sorted.sort(function(a, b) {
+      var va = a[currentSort.key] || '', vb = b[currentSort.key] || '';
+      if (currentSort.key === 'priority') {
+        var order = { CRITICAL: 0, HIGH: 1, MEDIUM: 2 };
+        va = order[va] !== undefined ? order[va] : 3;
+        vb = order[vb] !== undefined ? order[vb] : 3;
+      }
+      if (va < vb) return currentSort.asc ? -1 : 1;
+      if (va > vb) return currentSort.asc ? 1 : -1;
+      return 0;
+    });
+  }
+
+  var tbody = document.getElementById('tableBody');
+  tbody.innerHTML = sorted.map(function(d, fi) {
+    var idx = DATA.indexOf(d);
+    var statusClass = 'status-' + d.status.replace(' ', '-');
+    return '<tr>' +
+      '<td><span class="priority-badge priority-' + d.priority + '">' + d.priority + '</span></td>' +
+      '<td class="component-cell"><div class="component-name">' + d.component + '</div><div class="component-desc">' + d.desc + '</div></td>' +
+      '<td class="activity-cell"><textarea class="editable-input" rows="1" onchange="updateField(' + idx + ',\'activity\',this.value)" oninput="autoResize(this)">' + esc(d.activity) + '</textarea></td>' +
+      '<td class="deliverable-cell"><textarea class="editable-input" rows="1" onchange="updateField(' + idx + ',\'deliverable\',this.value)" oninput="autoResize(this)">' + esc(d.deliverable) + '</textarea></td>' +
+      '<td><input class="owner-input" value="' + esc(d.sfsDri||d.owner||'') + '" placeholder="Assign..." onchange="updateField(' + idx + ',\'sfsDri\',this.value)"></td>' +
+      '<td><input class="owner-input" value="' + esc(d.blockDri||'') + '" placeholder="Assign..." onchange="updateField(' + idx + ',\'blockDri\',this.value)"></td>' +
+      '<td><select class="status-select ' + statusClass + '" onchange="updateStatus(' + idx + ',this.value,this)">' +
+        '<option ' + (d.status==='Not Started'?'selected':'') + '>Not Started</option>' +
+        '<option ' + (d.status==='In Progress'?'selected':'') + '>In Progress</option>' +
+        '<option ' + (d.status==='Blocked'?'selected':'') + '>Blocked</option>' +
+        '<option ' + (d.status==='Complete'?'selected':'') + '>Complete</option>' +
+      '</select></td>' +
+      '<td><input type="date" class="date-input" value="' + d.date + '" onchange="updateField(' + idx + ',\'date\',this.value)"></td>' +
+      '<td class="current-state-cell">' + d.currentState + '</td>' +
+      '<td><input class="artifacts-input" value="' + esc(d.artifacts) + '" placeholder="Add link..." onchange="updateField(' + idx + ',\'artifacts\',this.value)"></td>' +
+      '<td class="notes-cell"><textarea class="editable-input" rows="1" placeholder="Add note..." onchange="updateField(' + idx + ',\'notes\',this.value)" oninput="autoResize(this)">' + esc(d.notes) + '</textarea></td>' +
+      '<td><button class="delete-btn" onclick="deleteRow(' + idx + ')" title="Delete this work item">&#x2715;</button></td>' +
+    '</tr>';
+  }).join('');
+
+  document.getElementById('rowCount').textContent = 'Showing ' + sorted.length + ' of ' + DATA.length + ' work items';
+  requestAnimationFrame(autoResizeAll);
+}
+
+function esc(s) { return (s||'').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+function autoResizeAll() {
+  document.querySelectorAll('textarea.editable-input').forEach(function(el) { autoResize(el); });
+}
+
+function updateField(idx, field, val) {
+  DATA[idx][field] = val;
+  autoSave();
+}
+
+function updateStatus(idx, val, el) {
+  DATA[idx].status = val;
+  el.className = 'status-select status-' + val.replace(' ', '-');
+  renderDashboard();
+  autoSave();
+}
+
+function deleteRow(idx) {
+  if (!confirm('Delete this work item?\n\n"' + DATA[idx].activity + '"\n\nYou can undo this within 10 seconds.')) return;
+  lastDeleted = { item: DATA[idx], index: idx };
+  DATA.splice(idx, 1);
+  autoSave();
+  renderTable();
+  renderDashboard();
+  populateComponentFilter();
+  var bar = document.getElementById('undoBar');
+  document.getElementById('undoMsg').textContent = 'Deleted: "' + lastDeleted.item.activity.substring(0, 50) + '..."';
+  bar.classList.add('show');
+  clearTimeout(undoTimeout);
+  undoTimeout = setTimeout(function() { bar.classList.remove('show'); lastDeleted = null; }, 10000);
+}
+
+function undoDelete() {
+  if (!lastDeleted) return;
+  DATA.splice(lastDeleted.index, 0, lastDeleted.item);
+  lastDeleted = null;
+  autoSave();
+  renderTable();
+  renderDashboard();
+  populateComponentFilter();
+  document.getElementById('undoBar').classList.remove('show');
+  clearTimeout(undoTimeout);
+  showToast('Item restored');
+}
+
+function sortTable(key) {
+  var keyMap = { priority:'priority', component:'component', activity:'activity', deliverable:'deliverable', sfsDri:'sfsDri', blockDri:'blockDri', status:'status', date:'date' };
+  var k = keyMap[key];
+  if (currentSort.key === k) currentSort.asc = !currentSort.asc;
+  else { currentSort.key = k; currentSort.asc = true; }
+  renderTable();
+}
+
+function filterByStatus(s) {
+  var sel = document.getElementById('filterStatus');
+  if (activeStatusFilter === s) { activeStatusFilter = null; sel.value = ''; }
+  else { activeStatusFilter = s; sel.value = s; }
+  applyFilters();
+}
+
+function applyFilters() {
+  activeStatusFilter = document.getElementById('filterStatus').value || null;
+  renderTable();
+  renderDashboard();
+}
+
+function clearFilters() {
+  document.getElementById('filterPriority').value = '';
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterComponent').value = '';
+  document.getElementById('searchInput').value = '';
+  activeStatusFilter = null;
+  applyFilters();
+}
+
+function populateComponentFilter() {
+  var components = []; var seen = {};
+  DATA.forEach(function(d) { if (!seen[d.component]) { seen[d.component] = true; components.push(d.component); } });
+  var sel = document.getElementById('filterComponent');
+  sel.innerHTML = '<option value="">All Components</option>' + components.map(function(c) { return '<option value="' + c + '">' + c + '</option>'; }).join('');
+}
+
+function exportCSV() {
+  var headers = ['Priority','Program Component and Description','Key Activity','Deliverable / Output','SFS DRI','Block DRI','Status','Target Date','Current State at Block','Artifacts / Links','Notes'];
+  var rows = DATA.map(function(d) {
+    return [d.priority, d.component + ' - ' + d.desc, d.activity, d.deliverable, d.sfsDri||d.owner||'', d.blockDri||'', d.status, d.date, d.currentState, d.artifacts, d.notes].map(function(v) { return '"' + (v||'').replace(/"/g, '""') + '"'; }).join(',');
+  });
+  var csv = [headers.join(',')].concat(rows).join('\n');
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href = url; a.download = 'AI_Risk_Program_Tracker.csv'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV exported');
+}
+
+// Add Work Item modal
+function populateAddComponentDropdown() {
+  var components = []; var seen = {};
+  DATA.forEach(function(d) { if (!seen[d.component]) { seen[d.component] = true; components.push(d.component); } });
+  var sel = document.getElementById('addComponent');
+  sel.innerHTML = components.map(function(c) {
+    return '<option value="' + c + '">' + c + '</option>';
+  }).join('') + '<option value="__custom__">-- New Component --</option>';
+}
+
+function openAddModal() {
+  populateAddComponentDropdown();
+  document.getElementById('addModal').classList.add('show');
+}
+
+function closeAddModal() {
+  document.getElementById('addModal').classList.remove('show');
+}
+
+function addWorkItem() {
+  var compSel = document.getElementById('addComponent');
+  var component = compSel.value;
+  var desc = '';
+
+  if (component === '__custom__') {
+    component = prompt('Enter new Program Component name:');
+    if (!component) return;
+    desc = prompt('Enter description for "' + component + '":') || '';
+  } else {
+    var found = DATA.find(function(d) { return d.component === component; });
+    desc = found ? found.desc : '';
+  }
+
+  var activity = document.getElementById('addActivity').value.trim();
+  var deliverable = document.getElementById('addDeliverable').value.trim();
+
+  if (!activity) { alert('Key Activity is required.'); return; }
+  if (!deliverable) { alert('Deliverable / Output is required.'); return; }
+
+  var foundForState = DATA.find(function(d) { return d.component === component; });
+  var newItem = {
+    priority: document.getElementById('addPriority').value,
+    component: component,
+    desc: desc,
+    activity: activity,
+    deliverable: deliverable,
+    sfsDri: document.getElementById('addSfsDri').value.trim(),
+    blockDri: document.getElementById('addBlockDri').value.trim(),
+    owner: '',
+    status: 'Not Started',
+    date: document.getElementById('addDate').value,
+    currentState: foundForState ? foundForState.currentState : '',
+    artifacts: '',
+    notes: document.getElementById('addNotes').value.trim()
+  };
+
+  // Insert after last item of same component, or at end
+  var lastIdx = DATA.map(function(d, i) { return d.component === component ? i : -1; }).filter(function(i) { return i >= 0; });
+  var insertAt = lastIdx.length > 0 ? lastIdx[lastIdx.length - 1] + 1 : DATA.length;
+  DATA.splice(insertAt, 0, newItem);
+
+  autoSave();
+  renderTable();
+  renderDashboard();
+  populateComponentFilter();
+  closeAddModal();
+
+  // Clear form
+  document.getElementById('addActivity').value = '';
+  document.getElementById('addDeliverable').value = '';
+  document.getElementById('addSfsDri').value = '';
+  document.getElementById('addBlockDri').value = '';
+  document.getElementById('addDate').value = '';
+  document.getElementById('addNotes').value = '';
+
+  showToast('Work item added to ' + component);
+}
+
+// Close modal on overlay click
+document.getElementById('addModal').addEventListener('click', function(e) {
+  if (e.target === this) closeAddModal();
+});
+
+// Init - clear any corrupted/empty saved state so hardcoded data loads properly
+(function() {
+  var check = storageGet('ai-risk-tracker-v2');
+  if (check) {
+    try {
+      var parsed = JSON.parse(check);
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        storageRemove('ai-risk-tracker-v2');
+      }
+    } catch(e) {
+      storageRemove('ai-risk-tracker-v2');
+    }
+  }
+})();
+
+try { loadSaved(); } catch(e) { console.warn('loadSaved failed:', e); }
+populateComponentFilter();
+renderDashboard();
+renderTable();
+</script>
+</body>
+</html>
