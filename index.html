@@ -450,29 +450,6 @@
     .component-grid { grid-template-columns: 1fr; }
     .container { padding: 16px 20px; }
   }
-
-  /* Info banner */
-  .info-banner {
-    background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
-    border: 1px solid #bfdbfe;
-    border-radius: 10px;
-    padding: 14px 24px;
-    margin-bottom: 24px;
-    font-size: 13px;
-    color: #1e40af;
-    line-height: 1.6;
-  }
-  .info-banner strong { font-weight: 600; }
-  .info-banner .info-line { display: block; margin-bottom: 2px; }
-  .info-banner .info-line:last-child { margin-bottom: 0; }
-
-  /* Header actions wrap */
-  .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .btn-danger { background: rgba(220,38,38,0.15); border-color: rgba(220,38,38,0.3); color: #fecaca; }
-  .btn-danger:hover { background: rgba(220,38,38,0.3); }
-  .btn-success { background: rgba(22,163,74,0.15); border-color: rgba(22,163,74,0.3); color: #bbf7d0; }
-  .btn-success:hover { background: rgba(22,163,74,0.3); }
-  .header-actions .sep { width: 1px; height: 24px; background: rgba(255,255,255,0.2); margin: 0 4px; }
 </style>
 </head>
 <body>
@@ -484,22 +461,11 @@
   </div>
   <div class="header-actions">
     <button class="btn" onclick="exportCSV()">Export CSV</button>
-    <button class="btn btn-success" onclick="exportJSON()">Export JSON</button>
-    <button class="btn" onclick="document.getElementById('importJsonInput').click()">Import JSON</button>
-    <input type="file" id="importJsonInput" accept=".json,application/json" style="display:none" onchange="importJSON(event)">
-    <div class="sep"></div>
-    <button class="btn btn-danger" onclick="resetToDefault()">Reset to Default Data</button>
     <span id="autoSaveIndicator" style="font-size:12px;opacity:0.6">Auto-saving enabled</span>
   </div>
 </div>
 
 <div class="container">
-  <!-- Info Banner -->
-  <div class="info-banner">
-    <span class="info-line"><strong>This is a static page</strong> &mdash; edits save to your browser only unless you export/import JSON.</span>
-    <span class="info-line">To share progress, export JSON and send it along with this HTML file, or paste the JSON into the importer on another machine.</span>
-  </div>
-
   <!-- Dashboard Row 1: Summary Cards -->
   <div class="dashboard">
     <div class="dash-card">
@@ -673,8 +639,7 @@
 </div>
 
 <script>
-// === DEFAULT DATA (deep-frozen copy for reset) ===
-const DEFAULT_DATA = Object.freeze([
+const DATA = [
   {priority:"CRITICAL",component:"AI Governance Structure",desc:"Establish oversight bodies, roles, and decision-making authority for AI risk management",activity:"Define Board/Executive oversight responsibilities",deliverable:"AI Governance Charter",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval process exists; No formal governance committee structure; No 2nd/3rd line AI oversight functions",artifacts:"",notes:""},
   {priority:"CRITICAL",component:"AI Governance Structure",desc:"Establish oversight bodies, roles, and decision-making authority for AI risk management",activity:"Establish AI Executive Oversight Group or similar committee (for SFS this will be MCRC)",deliverable:"Committee meeting cadence and agendas",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval process exists; No formal governance committee structure; No 2nd/3rd line AI oversight functions",artifacts:"",notes:""},
   {priority:"CRITICAL",component:"AI Governance Structure",desc:"Establish oversight bodies, roles, and decision-making authority for AI risk management",activity:"Create RACI matrix for AI decisions and approvals",deliverable:"AI Governance Charter",owner:"",status:"Not Started",date:"",currentState:"go/genaiapproval process exists; No formal governance committee structure; No 2nd/3rd line AI oversight functions",artifacts:"",notes:""},
@@ -774,131 +739,55 @@ const DEFAULT_DATA = Object.freeze([
   {priority:"MEDIUM",component:"Stakeholder Engagement",desc:"Processes to engage internal and external stakeholders in AI development and deployment",activity:"Create ongoing feedback mechanisms (surveys, support tickets)",deliverable:"User feedback mechanisms",owner:"",status:"Not Started",date:"",currentState:"Unknown stakeholder engagement requirements; No feedback mechanisms for deployed AI; No diversity requirements for AI teams",artifacts:"",notes:""},
   {priority:"MEDIUM",component:"Stakeholder Engagement",desc:"Processes to engage internal and external stakeholders in AI development and deployment",activity:"Consult external stakeholders for high-risk AI",deliverable:"External consultation process",owner:"",status:"Not Started",date:"",currentState:"Unknown stakeholder engagement requirements; No feedback mechanisms for deployed AI; No diversity requirements for AI teams",artifacts:"",notes:""},
   {priority:"MEDIUM",component:"Stakeholder Engagement",desc:"Processes to engage internal and external stakeholders in AI development and deployment",activity:"Publish transparency reports on AI usage",deliverable:"Transparency report template",owner:"",status:"Not Started",date:"",currentState:"Unknown stakeholder engagement requirements; No feedback mechanisms for deployed AI; No diversity requirements for AI teams",artifacts:"",notes:""}
-
-].map(function(item) { return Object.freeze(Object.assign({}, item)); }));
-
-// === Working copy of data ===
-const DATA = DEFAULT_DATA.map(function(item) { return Object.assign({}, item); });
+];
 
 let currentSort = { key: null, asc: true };
 let activeStatusFilter = null;
 let lastDeleted = null;
 let undoTimeout = null;
 
-// === localStorage helpers (all wrapped in try/catch) ===
-function storageGet(key) {
-  try { return localStorage.getItem(key); } catch(e) { return null; }
-}
-function storageSet(key, val) {
-  try { localStorage.setItem(key, val); } catch(e) { /* localStorage unavailable */ }
-}
-function storageRemove(key) {
-  try { localStorage.removeItem(key); } catch(e) { /* localStorage unavailable */ }
-}
-
 function loadSaved() {
-  var saved = storageGet('ai-risk-tracker-v2');
-  if (saved) {
-    try {
-      var parsed = JSON.parse(saved);
+  try {
+    const saved = localStorage.getItem('ai-risk-tracker-v2');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Only use saved data if it actually has items
       if (Array.isArray(parsed) && parsed.length > 0) {
         DATA.length = 0;
-        parsed.forEach(function(s) { DATA.push(s); });
+        parsed.forEach(s => DATA.push(s));
       }
-    } catch(e) {
-      console.warn('Failed to parse saved data, using defaults', e);
-      storageRemove('ai-risk-tracker-v2');
     }
+  } catch(e) {
+    console.warn('Failed to load saved data, using defaults', e);
   }
-  var ts = storageGet('ai-risk-tracker-ts');
+  const ts = localStorage.getItem('ai-risk-tracker-ts');
   if (ts) document.getElementById('lastUpdated').textContent = 'Last saved: ' + ts;
 }
 
 function autoSave() {
-  storageSet('ai-risk-tracker-v2', JSON.stringify(DATA));
-  var now = new Date().toLocaleString();
-  storageSet('ai-risk-tracker-ts', now);
+  localStorage.setItem('ai-risk-tracker-v2', JSON.stringify(DATA));
+  const now = new Date().toLocaleString();
+  localStorage.setItem('ai-risk-tracker-ts', now);
   document.getElementById('lastUpdated').textContent = 'Last saved: ' + now;
-  var ind = document.getElementById('autoSaveIndicator');
+  const ind = document.getElementById('autoSaveIndicator');
   ind.textContent = 'Saved';
   ind.style.opacity = '1';
-  setTimeout(function() { ind.textContent = 'Auto-saving enabled'; ind.style.opacity = '0.6'; }, 1500);
+  setTimeout(() => { ind.textContent = 'Auto-saving enabled'; ind.style.opacity = '0.6'; }, 1500);
 }
 
 function showToast(msg) {
-  var t = document.getElementById('toast');
+  const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(function() { t.classList.remove('show'); }, 2500);
+  setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-// === Export / Import / Reset ===
-function exportJSON() {
-  var json = JSON.stringify(DATA, null, 2);
-  var blob = new Blob([json], { type: 'application/json' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = 'AI_Risk_Program_Tracker.json';
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('JSON exported');
-}
-
-function importJSON(event) {
-  var file = event.target.files[0];
-  if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      var parsed = JSON.parse(e.target.result);
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        alert('Invalid JSON file: must be a non-empty array of work items.');
-        return;
-      }
-      // Validate that items have at least component and activity
-      var valid = parsed.every(function(item) {
-        return item && typeof item.component === 'string' && typeof item.activity === 'string';
-      });
-      if (!valid) {
-        alert('Invalid JSON format: each item must have at least "component" and "activity" fields.');
-        return;
-      }
-      if (!confirm('Import ' + parsed.length + ' work items? This will replace all current data.')) return;
-      DATA.length = 0;
-      parsed.forEach(function(item) { DATA.push(item); });
-      autoSave();
-      populateComponentFilter();
-      renderDashboard();
-      renderTable();
-      showToast('Imported ' + parsed.length + ' work items from JSON');
-    } catch(err) {
-      alert('Failed to parse JSON file: ' + err.message);
-    }
-  };
-  reader.readAsText(file);
-  // Reset the input so the same file can be re-imported
-  event.target.value = '';
-}
-
-function resetToDefault() {
-  if (!confirm('Reset all data to the original built-in defaults?\n\nThis will discard all your edits. You can export JSON first to keep a backup.')) return;
-  DATA.length = 0;
-  DEFAULT_DATA.forEach(function(item) { DATA.push(Object.assign({}, item)); });
-  autoSave();
-  populateComponentFilter();
-  renderDashboard();
-  renderTable();
-  showToast('Data reset to defaults');
-}
-
-// === Filtering ===
 function getFiltered() {
-  var p = document.getElementById('filterPriority').value;
-  var s = document.getElementById('filterStatus').value;
-  var c = document.getElementById('filterComponent').value;
-  var q = document.getElementById('searchInput').value.toLowerCase();
-  return DATA.filter(function(d) {
+  const p = document.getElementById('filterPriority').value;
+  const s = document.getElementById('filterStatus').value;
+  const c = document.getElementById('filterComponent').value;
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  return DATA.filter(d => {
     if (p && d.priority !== p) return false;
     if (s && d.status !== s) return false;
     if (c && d.component !== c) return false;
@@ -907,20 +796,19 @@ function getFiltered() {
   });
 }
 
-// === Dashboard ===
 function renderDashboard() {
-  var total = DATA.length;
-  var complete = DATA.filter(function(d) { return d.status === 'Complete'; }).length;
-  var pct = total ? Math.round((complete / total) * 100) : 0;
+  const total = DATA.length;
+  const complete = DATA.filter(d => d.status === 'Complete').length;
+  const pct = total ? Math.round((complete / total) * 100) : 0;
 
   document.getElementById('totalItems').textContent = total;
   document.getElementById('overallPct').textContent = pct + '%';
   document.getElementById('completedCount').textContent = complete + ' of ' + total + ' complete';
 
   // Progress ring
-  var canvas = document.getElementById('progressRing');
-  var ctx = canvas.getContext('2d');
-  var size = 80, cx = size/2, cy = size/2, r = 32, lw = 8;
+  const canvas = document.getElementById('progressRing');
+  const ctx = canvas.getContext('2d');
+  const size = 80, cx = size/2, cy = size/2, r = 32, lw = 8;
   ctx.clearRect(0, 0, size, size);
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = lw; ctx.stroke();
   if (pct > 0) {
@@ -930,40 +818,39 @@ function renderDashboard() {
   ctx.fillText(pct + '%', cx, cy);
 
   // Priority bars
-  var priorities = ['CRITICAL', 'HIGH', 'MEDIUM'];
-  var colors = { CRITICAL: '#dc2626', HIGH: '#f59e0b', MEDIUM: '#3b82f6' };
-  var barsHtml = priorities.map(function(p) {
-    var items = DATA.filter(function(d) { return d.priority === p; });
-    var done = items.filter(function(d) { return d.status === 'Complete'; }).length;
-    var ppct = items.length ? Math.round((done / items.length) * 100) : 0;
-    return '<div class="priority-bar-row">' +
-      '<span class="priority-bar-label" style="color:' + colors[p] + '">' + p + '</span>' +
-      '<div class="priority-bar-track"><div class="priority-bar-fill" style="width:' + Math.max(ppct, 2) + '%;background:' + colors[p] + '">' + ppct + '%</div></div>' +
-      '<span class="priority-bar-count">' + done + '/' + items.length + '</span>' +
-    '</div>';
+  const priorities = ['CRITICAL', 'HIGH', 'MEDIUM'];
+  const colors = { CRITICAL: '#dc2626', HIGH: '#f59e0b', MEDIUM: '#3b82f6' };
+  const barsHtml = priorities.map(p => {
+    const items = DATA.filter(d => d.priority === p);
+    const done = items.filter(d => d.status === 'Complete').length;
+    const ppct = items.length ? Math.round((done / items.length) * 100) : 0;
+    return `<div class="priority-bar-row">
+      <span class="priority-bar-label" style="color:${colors[p]}">${p}</span>
+      <div class="priority-bar-track"><div class="priority-bar-fill" style="width:${Math.max(ppct, 2)}%;background:${colors[p]}">${ppct}%</div></div>
+      <span class="priority-bar-count">${done}/${items.length}</span>
+    </div>`;
   }).join('');
   document.getElementById('priorityBars').innerHTML = barsHtml;
 
   // Status counts
-  ['Not Started', 'In Progress', 'Blocked', 'Complete'].forEach(function(s) {
-    var key = s.replace(' ', '-');
-    document.getElementById('count-' + key).textContent = DATA.filter(function(d) { return d.status === s; }).length;
-    var card = document.getElementById('card-' + key);
+  ['Not Started', 'In Progress', 'Blocked', 'Complete'].forEach(s => {
+    const key = s.replace(' ', '-');
+    document.getElementById('count-' + key).textContent = DATA.filter(d => d.status === s).length;
+    const card = document.getElementById('card-' + key);
     card.classList.toggle('active', activeStatusFilter === s);
   });
 
   // Component progress
-  var components = []; var seen = {};
-  DATA.forEach(function(d) { if (!seen[d.component]) { seen[d.component] = true; components.push(d.component); } });
-  var gridHtml = components.map(function(c) {
-    var items = DATA.filter(function(d) { return d.component === c; });
-    var done = items.filter(function(d) { return d.status === 'Complete'; }).length;
-    var cpct = items.length ? Math.round((done / items.length) * 100) : 0;
-    return '<div class="comp-row">' +
-      '<span class="comp-name" title="' + c + '">' + c + '</span>' +
-      '<div class="comp-bar-track"><div class="comp-bar-fill" style="width:' + cpct + '%"></div></div>' +
-      '<span class="comp-pct">' + cpct + '%</span>' +
-    '</div>';
+  const components = [...new Set(DATA.map(d => d.component))];
+  const gridHtml = components.map(c => {
+    const items = DATA.filter(d => d.component === c);
+    const done = items.filter(d => d.status === 'Complete').length;
+    const cpct = items.length ? Math.round((done / items.length) * 100) : 0;
+    return `<div class="comp-row">
+      <span class="comp-name" title="${c}">${c}</span>
+      <div class="comp-bar-track"><div class="comp-bar-fill" style="width:${cpct}%"></div></div>
+      <span class="comp-pct">${cpct}%</span>
+    </div>`;
   }).join('');
   document.getElementById('componentGrid').innerHTML = gridHtml;
 
@@ -972,18 +859,18 @@ function renderDashboard() {
 }
 
 function renderDueSoon() {
-  var today = new Date();
+  const today = new Date();
   today.setHours(0,0,0,0);
-  var in30 = new Date(today);
+  const in30 = new Date(today);
   in30.setDate(in30.getDate() + 30);
-  var in7 = new Date(today);
+  const in7 = new Date(today);
   in7.setDate(in7.getDate() + 7);
 
-  var dueSoon = DATA.filter(function(d) {
+  const dueSoon = DATA.filter(d => {
     if (!d.date || d.status === 'Complete') return false;
-    var dt = new Date(d.date + 'T00:00:00');
+    const dt = new Date(d.date + 'T00:00:00');
     return dt <= in30;
-  }).sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+  }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
   document.getElementById('dueSoonCount').textContent = dueSoon.length;
 
@@ -992,10 +879,10 @@ function renderDueSoon() {
     return;
   }
 
-  var html = '<div class="due-soon-list">' + dueSoon.map(function(d) {
-    var dt = new Date(d.date + 'T00:00:00');
-    var diff = Math.ceil((dt - today) / (1000 * 60 * 60 * 24));
-    var cls, dateLabel;
+  const html = '<div class="due-soon-list">' + dueSoon.map(d => {
+    const dt = new Date(d.date + 'T00:00:00');
+    const diff = Math.ceil((dt - today) / (1000 * 60 * 60 * 24));
+    let cls, dateLabel;
     if (diff < 0) {
       cls = 'overdue';
       dateLabel = Math.abs(diff) + ' day' + (Math.abs(diff) !== 1 ? 's' : '') + ' overdue';
@@ -1009,28 +896,26 @@ function renderDueSoon() {
       cls = 'due-later';
       dateLabel = 'In ' + diff + ' days';
     }
-    return '<div class="due-soon-item ' + cls + '">' +
-      '<span class="due-soon-date ' + cls + '">' + dateLabel + '<br><span style="font-weight:400;font-size:11px">' + d.date + '</span></span>' +
-      '<span class="due-soon-activity">' + d.activity + '</span>' +
-      '<span class="due-soon-component">' + d.component + '</span>' +
-      '<span class="due-soon-badge"><span class="priority-badge priority-' + d.priority + '">' + d.priority + '</span></span>' +
-      '<span class="priority-badge priority-' + (d.status === 'Blocked' ? 'CRITICAL' : 'MEDIUM') + '" style="font-size:10px">' + d.status + '</span>' +
-    '</div>';
+    return `<div class="due-soon-item ${cls}">
+      <span class="due-soon-date ${cls}">${dateLabel}<br><span style="font-weight:400;font-size:11px">${d.date}</span></span>
+      <span class="due-soon-activity">${d.activity}</span>
+      <span class="due-soon-component">${d.component}</span>
+      <span class="due-soon-badge"><span class="priority-badge priority-${d.priority}">${d.priority}</span></span>
+      <span class="priority-badge priority-${d.status === 'Blocked' ? 'CRITICAL' : 'MEDIUM'}" style="font-size:10px">${d.status}</span>
+    </div>`;
   }).join('') + '</div>';
   document.getElementById('dueSoonList').innerHTML = html;
 }
 
-// === Table ===
 function renderTable() {
-  var filtered = getFiltered();
-  var sorted = filtered.slice();
+  const filtered = getFiltered();
+  let sorted = [...filtered];
   if (currentSort.key) {
-    sorted.sort(function(a, b) {
-      var va = a[currentSort.key] || '', vb = b[currentSort.key] || '';
+    sorted.sort((a, b) => {
+      let va = a[currentSort.key] || '', vb = b[currentSort.key] || '';
       if (currentSort.key === 'priority') {
-        var order = { CRITICAL: 0, HIGH: 1, MEDIUM: 2 };
-        va = order[va] !== undefined ? order[va] : 3;
-        vb = order[vb] !== undefined ? order[vb] : 3;
+        const order = { CRITICAL: 0, HIGH: 1, MEDIUM: 2 };
+        va = order[va] ?? 3; vb = order[vb] ?? 3;
       }
       if (va < vb) return currentSort.asc ? -1 : 1;
       if (va > vb) return currentSort.asc ? 1 : -1;
@@ -1038,32 +923,32 @@ function renderTable() {
     });
   }
 
-  var tbody = document.getElementById('tableBody');
-  tbody.innerHTML = sorted.map(function(d, fi) {
-    var idx = DATA.indexOf(d);
-    var statusClass = 'status-' + d.status.replace(' ', '-');
-    return '<tr>' +
-      '<td><span class="priority-badge priority-' + d.priority + '">' + d.priority + '</span></td>' +
-      '<td class="component-cell"><div class="component-name">' + d.component + '</div><div class="component-desc">' + d.desc + '</div></td>' +
-      '<td class="activity-cell"><textarea class="editable-input" rows="1" onchange="updateField(' + idx + ',\'activity\',this.value)" oninput="autoResize(this)">' + esc(d.activity) + '</textarea></td>' +
-      '<td class="deliverable-cell"><textarea class="editable-input" rows="1" onchange="updateField(' + idx + ',\'deliverable\',this.value)" oninput="autoResize(this)">' + esc(d.deliverable) + '</textarea></td>' +
-      '<td><input class="owner-input" value="' + esc(d.sfsDri||d.owner||'') + '" placeholder="Assign..." onchange="updateField(' + idx + ',\'sfsDri\',this.value)"></td>' +
-      '<td><input class="owner-input" value="' + esc(d.blockDri||'') + '" placeholder="Assign..." onchange="updateField(' + idx + ',\'blockDri\',this.value)"></td>' +
-      '<td><select class="status-select ' + statusClass + '" onchange="updateStatus(' + idx + ',this.value,this)">' +
-        '<option ' + (d.status==='Not Started'?'selected':'') + '>Not Started</option>' +
-        '<option ' + (d.status==='In Progress'?'selected':'') + '>In Progress</option>' +
-        '<option ' + (d.status==='Blocked'?'selected':'') + '>Blocked</option>' +
-        '<option ' + (d.status==='Complete'?'selected':'') + '>Complete</option>' +
-      '</select></td>' +
-      '<td><input type="date" class="date-input" value="' + d.date + '" onchange="updateField(' + idx + ',\'date\',this.value)"></td>' +
-      '<td class="current-state-cell">' + d.currentState + '</td>' +
-      '<td><input class="artifacts-input" value="' + esc(d.artifacts) + '" placeholder="Add link..." onchange="updateField(' + idx + ',\'artifacts\',this.value)"></td>' +
-      '<td class="notes-cell"><textarea class="editable-input" rows="1" placeholder="Add note..." onchange="updateField(' + idx + ',\'notes\',this.value)" oninput="autoResize(this)">' + esc(d.notes) + '</textarea></td>' +
-      '<td><button class="delete-btn" onclick="deleteRow(' + idx + ')" title="Delete this work item">&#x2715;</button></td>' +
-    '</tr>';
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = sorted.map((d, fi) => {
+    const idx = DATA.indexOf(d);
+    const statusClass = 'status-' + d.status.replace(' ', '-');
+    return `<tr>
+      <td><span class="priority-badge priority-${d.priority}">${d.priority}</span></td>
+      <td class="component-cell"><div class="component-name">${d.component}</div><div class="component-desc">${d.desc}</div></td>
+      <td class="activity-cell"><textarea class="editable-input" rows="1" onchange="updateField(${idx},'activity',this.value)" oninput="autoResize(this)">${esc(d.activity)}</textarea></td>
+      <td class="deliverable-cell"><textarea class="editable-input" rows="1" onchange="updateField(${idx},'deliverable',this.value)" oninput="autoResize(this)">${esc(d.deliverable)}</textarea></td>
+      <td><input class="owner-input" value="${esc(d.sfsDri||d.owner||'')}" placeholder="Assign..." onchange="updateField(${idx},'sfsDri',this.value)"></td>
+      <td><input class="owner-input" value="${esc(d.blockDri||'')}" placeholder="Assign..." onchange="updateField(${idx},'blockDri',this.value)"></td>
+      <td><select class="status-select ${statusClass}" onchange="updateStatus(${idx},this.value,this)">
+        <option ${d.status==='Not Started'?'selected':''}>Not Started</option>
+        <option ${d.status==='In Progress'?'selected':''}>In Progress</option>
+        <option ${d.status==='Blocked'?'selected':''}>Blocked</option>
+        <option ${d.status==='Complete'?'selected':''}>Complete</option>
+      </select></td>
+      <td><input type="date" class="date-input" value="${d.date}" onchange="updateField(${idx},'date',this.value)"></td>
+      <td class="current-state-cell">${d.currentState}</td>
+      <td><input class="artifacts-input" value="${esc(d.artifacts)}" placeholder="Add link..." onchange="updateField(${idx},'artifacts',this.value)"></td>
+      <td class="notes-cell"><textarea class="editable-input" rows="1" placeholder="Add note..." onchange="updateField(${idx},'notes',this.value)" oninput="autoResize(this)">${esc(d.notes)}</textarea></td>
+      <td><button class="delete-btn" onclick="deleteRow(${idx})" title="Delete this work item">&#x2715;</button></td>
+    </tr>`;
   }).join('');
 
-  document.getElementById('rowCount').textContent = 'Showing ' + sorted.length + ' of ' + DATA.length + ' work items';
+  document.getElementById('rowCount').textContent = `Showing ${sorted.length} of ${DATA.length} work items`;
   requestAnimationFrame(autoResizeAll);
 }
 
@@ -1075,7 +960,7 @@ function autoResize(el) {
 }
 
 function autoResizeAll() {
-  document.querySelectorAll('textarea.editable-input').forEach(function(el) { autoResize(el); });
+  document.querySelectorAll('textarea.editable-input').forEach(el => autoResize(el));
 }
 
 function updateField(idx, field, val) {
@@ -1098,11 +983,12 @@ function deleteRow(idx) {
   renderTable();
   renderDashboard();
   populateComponentFilter();
-  var bar = document.getElementById('undoBar');
+  // Show undo bar
+  const bar = document.getElementById('undoBar');
   document.getElementById('undoMsg').textContent = 'Deleted: "' + lastDeleted.item.activity.substring(0, 50) + '..."';
   bar.classList.add('show');
   clearTimeout(undoTimeout);
-  undoTimeout = setTimeout(function() { bar.classList.remove('show'); lastDeleted = null; }, 10000);
+  undoTimeout = setTimeout(() => { bar.classList.remove('show'); lastDeleted = null; }, 10000);
 }
 
 function undoDelete() {
@@ -1119,15 +1005,15 @@ function undoDelete() {
 }
 
 function sortTable(key) {
-  var keyMap = { priority:'priority', component:'component', activity:'activity', deliverable:'deliverable', sfsDri:'sfsDri', blockDri:'blockDri', status:'status', date:'date' };
-  var k = keyMap[key];
+  const keyMap = { priority:'priority', component:'component', activity:'activity', deliverable:'deliverable', sfsDri:'sfsDri', blockDri:'blockDri', status:'status', date:'date' };
+  const k = keyMap[key];
   if (currentSort.key === k) currentSort.asc = !currentSort.asc;
   else { currentSort.key = k; currentSort.asc = true; }
   renderTable();
 }
 
 function filterByStatus(s) {
-  var sel = document.getElementById('filterStatus');
+  const sel = document.getElementById('filterStatus');
   if (activeStatusFilter === s) { activeStatusFilter = null; sel.value = ''; }
   else { activeStatusFilter = s; sel.value = s; }
   applyFilters();
@@ -1149,32 +1035,29 @@ function clearFilters() {
 }
 
 function populateComponentFilter() {
-  var components = []; var seen = {};
-  DATA.forEach(function(d) { if (!seen[d.component]) { seen[d.component] = true; components.push(d.component); } });
-  var sel = document.getElementById('filterComponent');
-  sel.innerHTML = '<option value="">All Components</option>' + components.map(function(c) { return '<option value="' + c + '">' + c + '</option>'; }).join('');
+  const components = [...new Set(DATA.map(d => d.component))];
+  const sel = document.getElementById('filterComponent');
+  sel.innerHTML = '<option value="">All Components</option>' + components.map(c => `<option value="${c}">${c}</option>`).join('');
 }
 
 function exportCSV() {
-  var headers = ['Priority','Program Component and Description','Key Activity','Deliverable / Output','SFS DRI','Block DRI','Status','Target Date','Current State at Block','Artifacts / Links','Notes'];
-  var rows = DATA.map(function(d) {
-    return [d.priority, d.component + ' - ' + d.desc, d.activity, d.deliverable, d.sfsDri||d.owner||'', d.blockDri||'', d.status, d.date, d.currentState, d.artifacts, d.notes].map(function(v) { return '"' + (v||'').replace(/"/g, '""') + '"'; }).join(',');
-  });
-  var csv = [headers.join(',')].concat(rows).join('\n');
-  var blob = new Blob([csv], { type: 'text/csv' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a'); a.href = url; a.download = 'AI_Risk_Program_Tracker.csv'; a.click();
+  const headers = ['Priority','Program Component and Description','Key Activity','Deliverable / Output','SFS DRI','Block DRI','Status','Target Date','Current State at Block','Artifacts / Links','Notes'];
+  const rows = DATA.map(d => [d.priority, d.component + ' - ' + d.desc, d.activity, d.deliverable, d.sfsDri||d.owner||'', d.blockDri||'', d.status, d.date, d.currentState, d.artifacts, d.notes].map(v => '"' + (v||'').replace(/"/g, '""') + '"').join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'AI_Risk_Program_Tracker.csv'; a.click();
   URL.revokeObjectURL(url);
   showToast('CSV exported');
 }
 
 // Add Work Item modal
 function populateAddComponentDropdown() {
-  var components = []; var seen = {};
-  DATA.forEach(function(d) { if (!seen[d.component]) { seen[d.component] = true; components.push(d.component); } });
-  var sel = document.getElementById('addComponent');
-  sel.innerHTML = components.map(function(c) {
-    return '<option value="' + c + '">' + c + '</option>';
+  const components = [...new Set(DATA.map(d => d.component))];
+  const sel = document.getElementById('addComponent');
+  sel.innerHTML = components.map(c => {
+    const desc = DATA.find(d => d.component === c)?.desc || '';
+    return `<option value="${c}">${c}</option>`;
   }).join('') + '<option value="__custom__">-- New Component --</option>';
 }
 
@@ -1188,27 +1071,25 @@ function closeAddModal() {
 }
 
 function addWorkItem() {
-  var compSel = document.getElementById('addComponent');
-  var component = compSel.value;
-  var desc = '';
+  const compSel = document.getElementById('addComponent');
+  let component = compSel.value;
+  let desc = '';
 
   if (component === '__custom__') {
     component = prompt('Enter new Program Component name:');
     if (!component) return;
     desc = prompt('Enter description for "' + component + '":') || '';
   } else {
-    var found = DATA.find(function(d) { return d.component === component; });
-    desc = found ? found.desc : '';
+    desc = DATA.find(d => d.component === component)?.desc || '';
   }
 
-  var activity = document.getElementById('addActivity').value.trim();
-  var deliverable = document.getElementById('addDeliverable').value.trim();
+  const activity = document.getElementById('addActivity').value.trim();
+  const deliverable = document.getElementById('addDeliverable').value.trim();
 
   if (!activity) { alert('Key Activity is required.'); return; }
   if (!deliverable) { alert('Deliverable / Output is required.'); return; }
 
-  var foundForState = DATA.find(function(d) { return d.component === component; });
-  var newItem = {
+  const newItem = {
     priority: document.getElementById('addPriority').value,
     component: component,
     desc: desc,
@@ -1219,14 +1100,14 @@ function addWorkItem() {
     owner: '',
     status: 'Not Started',
     date: document.getElementById('addDate').value,
-    currentState: foundForState ? foundForState.currentState : '',
+    currentState: DATA.find(d => d.component === component)?.currentState || '',
     artifacts: '',
     notes: document.getElementById('addNotes').value.trim()
   };
 
   // Insert after last item of same component, or at end
-  var lastIdx = DATA.map(function(d, i) { return d.component === component ? i : -1; }).filter(function(i) { return i >= 0; });
-  var insertAt = lastIdx.length > 0 ? lastIdx[lastIdx.length - 1] + 1 : DATA.length;
+  const lastIdx = DATA.map((d, i) => d.component === component ? i : -1).filter(i => i >= 0);
+  const insertAt = lastIdx.length > 0 ? lastIdx[lastIdx.length - 1] + 1 : DATA.length;
   DATA.splice(insertAt, 0, newItem);
 
   autoSave();
@@ -1251,18 +1132,18 @@ document.getElementById('addModal').addEventListener('click', function(e) {
   if (e.target === this) closeAddModal();
 });
 
-// Init - clear any corrupted/empty saved state so hardcoded data loads properly
+// Init — clear any corrupted/empty saved state so hardcoded data loads properly
 (function() {
-  var check = storageGet('ai-risk-tracker-v2');
-  if (check) {
-    try {
-      var parsed = JSON.parse(check);
+  try {
+    const check = localStorage.getItem('ai-risk-tracker-v2');
+    if (check) {
+      const parsed = JSON.parse(check);
       if (!Array.isArray(parsed) || parsed.length === 0) {
-        storageRemove('ai-risk-tracker-v2');
+        localStorage.removeItem('ai-risk-tracker-v2');
       }
-    } catch(e) {
-      storageRemove('ai-risk-tracker-v2');
     }
+  } catch(e) {
+    try { localStorage.removeItem('ai-risk-tracker-v2'); } catch(e2) {}
   }
 })();
 

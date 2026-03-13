@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+._*
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Secrets - NEVER commit these
+.env
+*.pat
+*token*
+*secret*
+credentials.*
+
+# Node (in case future tooling is added)
+node_modules/
